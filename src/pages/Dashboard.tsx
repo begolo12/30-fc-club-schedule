@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [players, setPlayers] = useState<ClubUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playerSearch, setPlayerSearch] = useState('');
 
   useEffect(() => {
     // 1. Fetch matches (both active and recently cancelled)
@@ -128,7 +129,7 @@ export default function Dashboard() {
   const nextMatch = upcomingMatches[0];
 
   return (
-    <div className="flex-1 flex flex-col gap-8">
+    <div className="flex-1 flex flex-col gap-8 pb-20">
       {/* Cancellation Notifications */}
       {cancelledMatches.length > 0 && (
         <div className="space-y-3 px-1 animate-in slide-in-from-top-4 duration-500">
@@ -196,21 +197,39 @@ export default function Dashboard() {
                 <XIcon className="h-5 w-5" />
               </button>
             </div>
+            <div className="p-4 border-b border-zinc-800">
+              <input
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+                placeholder="Cari nama / role..."
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:border-lime-400 outline-none"
+              />
+            </div>
             <div className="max-h-[60vh] overflow-y-auto">
               {players.length === 0 ? (
                 <div className="px-5 py-8 text-center text-sm font-bold uppercase tracking-widest text-zinc-500">Belum ada pemain</div>
               ) : (
-                players.map((player) => (
-                  <div key={player.id} className="flex items-center gap-3 border-b border-zinc-800/80 px-5 py-3 last:border-b-0">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 font-black uppercase text-lime-300">
-                      {(player.nickname || player.displayName || 'P')[0]}
+                players
+                  .filter((p) => {
+                    const q = playerSearch.toLowerCase();
+                    if (!q) return true;
+                    return (
+                      (p.nickname || '').toLowerCase().includes(q) ||
+                      (p.displayName || '').toLowerCase().includes(q) ||
+                      (p.role || '').toLowerCase().includes(q)
+                    );
+                  })
+                  .map((player) => (
+                    <div key={player.id} className="flex items-center gap-3 border-b border-zinc-800/80 px-5 py-3 last:border-b-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 font-black uppercase text-lime-300">
+                        {(player.nickname || player.displayName || 'P')[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'Pemain'}</p>
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'Pemain'}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'Pemain'}</p>
-                      <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'Pemain'}</p>
-                    </div>
-                  </div>
-                ))
+                  ))
               )}
             </div>
           </div>
