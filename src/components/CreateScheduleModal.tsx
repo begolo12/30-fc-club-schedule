@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { X, Calendar, MapPin, Clock, Trash2 } from 'lucide-react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
+
+interface OtherCost {
+  description: string;
+  amount: number;
+}
 
 interface Props {
   isOpen: boolean;
@@ -11,110 +15,231 @@ interface Props {
 }
 
 export default function CreateScheduleModal({ isOpen, onClose }: Props) {
-  const { user } = useAuth();
-  const [title, setTitle] = useState('Latihan Futsal Rutin');
-  const [dateText, setDateText] = useState('');
-  const [timeText, setTimeText] = useState('19:00');
-  const [location, setLocation] = useState('');
-  const [fieldCost, setFieldCost] = useState('450000');
-  const [otherCost, setOtherCost] = useState('50000');
-  
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    location: '',
+    datetime: '',
+    fieldCost: 0,
+    dpCost: 0,
+    otherCosts: [] as OtherCost[]
+  });
+
+  const [formattedFieldCost, setFormattedFieldCost] = useState('0');
+  const [formattedDpCost, setFormattedDpCost] = useState('0');
+
   if (!isOpen) return null;
+
+  const parseNumber = (val: string) => parseInt(val.replace(/\./g, '')) || 0;
+  const formatNumber = (num: number) => num.toLocaleString('id-ID');
+
+  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost') => {
+    const numeric = parseNumber(val);
+    setFormData(prev => ({ ...prev, [field]: numeric }));
+    if (field === 'fieldCost') setFormattedFieldCost(formatNumber(numeric));
+    else setFormattedDpCost(formatNumber(numeric));
+  };
+
+  const addOtherCost = () => {
+    setFormData(prev => ({
+      ...prev,
+      otherCosts: [...prev.otherCosts, { description: '', amount: 0 }]
+    }));
+  };
+
+  const updateOtherCost = (index: number, field: keyof OtherCost, value: string) => {
+    const newCosts = [...formData.otherCosts];
+    if (field === 'amount') {
+      newCosts[index].amount = parseNumber(value);
+    } else {
+      newCosts[index].description = value;
+    }
+    setFormData(prev => ({ ...prev, otherCosts: newCosts }));
+  };
+
+  const removeOtherCost = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      otherCosts: prev.otherCosts.filter((_, i) => i !== index)
+    }));
+  };
+
+  const calculateTotal = () => {
+    const others = formData.otherCosts.reduce((acc, curr) => acc + curr.amount, 0);
+    return formData.fieldCost + others;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    
-    // Parse date and time
-    const [year, month, day] = dateText.split('-');
-    const [hours, minutes] = timeText.split(':');
-    const timestamp = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes)).getTime();
-
-    const parsedFieldCost = parseInt(fieldCost) || 0;
-    const parsedOtherCost = parseInt(otherCost) || 0;
+    setLoading(true);
 
     try {
-      const scheduleRef = doc(collection(db, 'schedules'));
-      await setDoc(scheduleRef, {
-        title,
-        dateText: `${dateText} ${timeText}`,
+      const totalCost = calculateTotal();
+      const timestamp = new Date(formData.datetime).getTime();
+
+      await addDoc(collection(db, 'schedules'), {
+        title: formData.title,
+        location: formData.location,
         timestamp,
-        location,
-        fieldCost: parsedFieldCost,
-        otherCost: parsedOtherCost,
-        totalCost: parsedFieldCost + parsedOtherCost,
-        creatorId: user.uid,
+        fieldCost: formData.fieldCost,
+        dpCost: formData.dpCost,
+        otherCosts: formData.otherCosts,
+        totalCost,
         status: 'upcoming',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        createdAt: serverTimestamp()
       });
+
       onClose();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'schedules');
+      setFormData({
+        title: '',
+        location: '',
+        datetime: '',
+        fieldCost: 0,
+        dpCost: 0,
+        otherCosts: []
+      });
+      setFormattedFieldCost('0');
+      setFormattedDpCost('0');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'schedules');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 z-50">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-5 border-b border-zinc-800 flex items-center justify-between">
-          <h2 className="text-xl font-black italic uppercase tracking-tighter text-zinc-100">Plan Match</h2>
-          <button onClick={onClose} className="p-2 text-zinc-500 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 rounded-full transition-colors focus:outline-none">
-            <X className="w-4 h-4" />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-md" onClick={onClose} />
+      
+      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-[3rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+          <h3 className="text-xl font-black italic uppercase tracking-tighter text-lime-400">Rencana Laga Baru</h3>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-500 transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
-        
-        <div className="overflow-y-auto px-6 py-5">
-          <form id="create-schedule-form" onSubmit={handleSubmit} className="space-y-5">
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Title</label>
-              <input required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors" />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Date</label>
-                <input required type="date" value={dateText} onChange={e => setDateText(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors [color-scheme:dark]" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Time</label>
-                <input required type="time" value={timeText} onChange={e => setTimeText(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors [color-scheme:dark]" />
-              </div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Judul Pertandingan</label>
+              <input
+                required
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:border-lime-400 outline-none transition-all"
+                placeholder="Contoh: Fun Futsal Weekend"
+              />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Location</label>
-              <input required type="text" value={location} onChange={e => setLocation(e.target.value)} className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Field Cost</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Lokasi / Lapangan</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-3.5 text-zinc-500 text-xs font-bold uppercase">Rp</span>
-                  <input required type="number" min="0" value={fieldCost} onChange={e => setFieldCost(e.target.value)} className="w-full pl-9 pr-3 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors" />
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    required
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-lime-400 outline-none transition-all"
+                    placeholder="Nama lapangan..."
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1.5 ml-1">Other Cost</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Waktu Kick-off</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-3.5 text-zinc-500 text-xs font-bold uppercase">Rp</span>
-                  <input required type="number" min="0" value={otherCost} onChange={e => setOtherCost(e.target.value)} className="w-full pl-9 pr-3 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-lime-400 focus:border-lime-400 text-sm text-zinc-100 outline-none transition-colors" />
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    required
+                    type="datetime-local"
+                    value={formData.datetime}
+                    onChange={(e) => setFormData({ ...formData, datetime: e.target.value })}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-lime-400 outline-none transition-all [color-scheme:dark]"
+                  />
                 </div>
               </div>
             </div>
 
-            <div className="bg-lime-400/10 border border-lime-400/20 text-lime-400 p-4 rounded-xl text-sm flex justify-between items-center mt-2 shadow-[inset_0_0_15px_rgba(163,230,53,0.05)]">
-              <span className="text-[10px] uppercase font-bold tracking-widest opacity-80">Total Required</span>
-              <span className="font-black italic text-lg tracking-tight">Rp {((parseInt(fieldCost) || 0) + (parseInt(otherCost) || 0)).toLocaleString('id-ID')}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Sewa Lapangan (Rp)</label>
+                <input
+                  required
+                  type="text"
+                  value={formattedFieldCost}
+                  onChange={(e) => handleCostChange(e.target.value, 'fieldCost')}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm font-bold text-zinc-100 focus:border-lime-400 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">DP Dibayar (Rp)</label>
+                <input
+                  required
+                  type="text"
+                  value={formattedDpCost}
+                  onChange={(e) => handleCostChange(e.target.value, 'dpCost')}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm font-bold text-lime-400 focus:border-lime-400 outline-none transition-all"
+                />
+              </div>
             </div>
-          </form>
-        </div>
-        
-        <div className="px-6 py-5 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/50">
-          <button type="button" onClick={onClose} className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 rounded-full transition-colors">Cancel</button>
-          <button type="submit" form="create-schedule-form" className="px-8 py-3 text-[10px] font-bold uppercase tracking-widest text-zinc-950 bg-lime-400 hover:bg-lime-300 rounded-full transition-all shadow-[0_0_15px_rgba(163,230,53,0.3)]">Create Match</button>
-        </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Biaya Tambahan (Opsional)</label>
+                <button 
+                  type="button"
+                  onClick={addOtherCost}
+                  className="text-[10px] font-black uppercase text-lime-400 hover:text-lime-300"
+                >
+                  + Tambah Biaya
+                </button>
+              </div>
+              {formData.otherCosts.map((cost, index) => (
+                <div key={index} className="flex gap-2 animate-in fade-in slide-in-from-top-1">
+                  <input
+                    type="text"
+                    value={cost.description}
+                    onChange={(e) => updateOtherCost(index, 'description', e.target.value)}
+                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs focus:border-lime-400 outline-none"
+                    placeholder="Uraian (misal: Aqua)"
+                  />
+                  <input
+                    type="text"
+                    value={cost.amount.toLocaleString('id-ID')}
+                    onChange={(e) => updateOtherCost(index, 'amount', e.target.value)}
+                    className="w-32 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs font-bold focus:border-lime-400 outline-none"
+                    placeholder="0"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => removeOtherCost(index)}
+                    className="p-2 text-zinc-500 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-lime-400/5 border border-lime-400/20 rounded-2xl p-6 mt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Estimasi Total Biaya</span>
+                <span className="text-xl font-black italic text-lime-400">Rp {calculateTotal().toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-lime-400 hover:bg-lime-300 disabled:opacity-50 text-zinc-950 py-4 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-lime-400/20 transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? 'Menyimpan...' : 'Simpan Rencana Laga'}
+          </button>
+        </form>
       </div>
     </div>
   );

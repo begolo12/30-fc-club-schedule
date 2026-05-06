@@ -84,102 +84,84 @@ export default function Dashboard() {
 
   return (
     <div className="flex-1 flex flex-col gap-8">
-      <header>
-        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-zinc-100">
-          Hello, <span className="text-lime-400">{user?.displayName?.split(' ')[0]}</span>
+      <header className="flex flex-col gap-1 px-1">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100">
+          Halo, <span className="text-lime-400">{user?.displayName?.split(' ')[0]}</span>
         </h2>
-        <p className="text-zinc-500 text-sm font-medium uppercase tracking-widest mt-1">Match Day Overview & Statistics</p>
+        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ikhtisar Pertandingan & Statistik</p>
       </header>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-xl group hover:border-lime-400/30 transition-all">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-lime-400/10 rounded-2xl flex items-center justify-center text-lime-400">
-              <Wallet className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Club Balance</p>
-              <h3 className="text-2xl font-black italic text-zinc-100">Rp {balance.toLocaleString('id-ID')}</h3>
-            </div>
-          </div>
+      {/* Compact Stats Grid */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+          <Wallet className="w-5 h-5 text-lime-400 mb-2 opacity-50" />
+          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Saldo Kas</p>
+          <h3 className="text-xs font-black italic text-zinc-100">Rp {balance.toLocaleString('id-ID')}</h3>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-xl group hover:border-blue-400/30 transition-all">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-400/10 rounded-2xl flex items-center justify-center text-blue-400">
-              <Trophy className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Upcoming Matches</p>
-              <h3 className="text-2xl font-black italic text-zinc-100">{upcomingMatches.length} <span className="text-xs text-zinc-600 not-italic uppercase tracking-normal">Scheduled</span></h3>
-            </div>
-          </div>
+        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+          <Trophy className="w-5 h-5 text-blue-400 mb-2 opacity-50" />
+          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Jadwal</p>
+          <h3 className="text-xs font-black italic text-zinc-100">{upcomingMatches.length}</h3>
         </div>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-[2rem] p-6 shadow-xl group hover:border-orange-400/30 transition-all">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-orange-400/10 rounded-2xl flex items-center justify-center text-orange-400">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Active Players</p>
-              <h3 className="text-2xl font-black italic text-zinc-100">{totalPlayers} <span className="text-xs text-zinc-600 not-italic uppercase tracking-normal">Members</span></h3>
-            </div>
-          </div>
+        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+          <Users className="w-5 h-5 text-orange-400 mb-2 opacity-50" />
+          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pemain</p>
+          <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
         </div>
       </div>
 
-      {/* Hero: Next Match */}
+      {/* Compact Hero: Next Match */}
       {nextMatch ? (
         <Link 
           to={`/schedule/${nextMatch.id}`}
-          className="relative bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 overflow-hidden group shadow-2xl hover:border-lime-400/50 transition-all"
+          className="relative bg-zinc-900 border border-zinc-800 rounded-3xl p-5 overflow-hidden group shadow-xl hover:border-lime-400/50 transition-all"
         >
-          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity font-black text-[10rem] italic pointer-events-none uppercase tracking-tighter leading-none text-zinc-100">
+          <div className="absolute top-0 right-0 p-4 opacity-[0.02] font-black text-7xl italic pointer-events-none uppercase tracking-tighter text-zinc-100">
             {format(nextMatch.timestamp, 'HH:mm')}
           </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <span className="bg-lime-400 text-zinc-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic animate-pulse">
-                Next Match
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="bg-lime-400 text-zinc-950 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest italic">
+                Laga Berikutnya
               </span>
-              <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
-                {format(nextMatch.timestamp, 'EEEE, d MMMM', { locale: idLocale })}
+              <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">
+                {format(nextMatch.timestamp, 'EEEE, d MMM', { locale: idLocale })}
               </span>
             </div>
 
-            <h3 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-zinc-100 group-hover:text-lime-400 transition-colors mb-8 max-w-2xl leading-tight">
+            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100 group-hover:text-lime-400 transition-colors leading-none">
               {nextMatch.title}
             </h3>
 
-            <div className="flex flex-wrap gap-8 items-center pt-8 border-t border-zinc-800/50">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-zinc-500" />
-                <span className="text-sm font-bold text-zinc-300 uppercase tracking-widest">{nextMatch.location}</span>
+            <div className="flex gap-4 items-center pt-4 border-t border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5" />
+                <span className="truncate max-w-[120px]">{nextMatch.location}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-zinc-500" />
-                <span className="text-sm font-bold text-zinc-300 uppercase tracking-widest">{format(nextMatch.timestamp, 'HH:mm')} WIB</span>
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{format(nextMatch.timestamp, 'HH:mm')} WIB</span>
               </div>
-              <div className="ml-auto w-12 h-12 rounded-full bg-lime-400 text-zinc-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <ArrowRight className="w-6 h-6" />
+              <div className="ml-auto w-8 h-8 rounded-full bg-lime-400 text-zinc-950 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         </Link>
       ) : (
-        <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-[2.5rem] p-16 text-center">
-          <CalendarIcon className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
-          <h3 className="text-sm font-black text-zinc-500 uppercase tracking-widest italic">No Upcoming Matches Scheduled</h3>
+        <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-[2rem] p-10 text-center">
+          <CalendarIcon className="w-8 h-8 text-zinc-800 mx-auto mb-3" />
+          <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">Belum Ada Jadwal Pertandingan</h3>
         </div>
       )}
 
       {/* Grid: Other Upcoming Matches */}
       <div className="space-y-6">
         <div className="flex items-center justify-between px-2">
-          <h4 className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">More Upcoming Matches</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Jadwal Lainnya</h4>
           <Link to="/calendar" className="text-[10px] font-black uppercase tracking-widest text-lime-400 hover:text-lime-300 transition-colors flex items-center gap-1">
-            View Full Calendar <ArrowRight className="w-3 h-3" />
+            Lihat Semua <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
 
