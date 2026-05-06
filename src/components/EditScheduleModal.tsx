@@ -42,10 +42,14 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
 
   useEffect(() => {
     if (schedule && isOpen) {
+      const tsValue = typeof schedule.timestamp === 'number'
+        ? schedule.timestamp
+        : schedule.timestamp?.toMillis?.() ?? Date.now();
+
       setFormData({
         title: schedule.title || '',
         location: schedule.location || '',
-        datetime: schedule.timestamp ? format(schedule.timestamp, "yyyy-MM-dd'T'HH:mm") : '',
+        datetime: tsValue ? format(tsValue, "yyyy-MM-dd'T'HH:mm") : '',
         type: schedule.type || 'latihan',
         fieldCost: schedule.fieldCost || 0,
         dpCost: schedule.dpCost || 0,
@@ -125,8 +129,11 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
     setLoading(true);
 
     try {
+      if (!schedule?.id) throw new Error('Schedule tidak valid');
+      if (!formData.datetime) throw new Error('Waktu kick-off wajib diisi');
       const totalCost = calculateTotal();
       const timestamp = new Date(formData.datetime).getTime();
+      if (Number.isNaN(timestamp)) throw new Error('Format waktu tidak valid');
 
       await updateDoc(doc(db, 'schedules', schedule.id), {
         title: formData.title,
