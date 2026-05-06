@@ -26,6 +26,9 @@ interface Schedule {
   totalCost: number;
   status: string;
   creatorId: string;
+  feePerPlayer?: number;
+  responsibleUserId?: string;
+  responsibleName?: string;
   deletedAt?: number;
   deletionReason?: string;
 }
@@ -127,7 +130,9 @@ export default function ScheduleDetail() {
   const teamBParticipants = participants.filter(p => p.team === 'B');
   const hasJoined = participants.some(p => p.userId === user?.uid);
   const myRecord = participants.find(p => p.userId === user?.uid);
-  const iuranFix = 25000;
+  const iuranFix = schedule.feePerPlayer && schedule.feePerPlayer > 0
+    ? schedule.feePerPlayer
+    : Math.max(0, Math.ceil(schedule.totalCost / Math.max(participants.length || 1, 1)));
   const totalCollected = participants.filter(p => p.paymentStatus && p.paymentStatus !== 'unpaid').length * iuranFix;
   const financialDiff = totalCollected - (schedule?.totalCost || 0);
 
@@ -264,10 +269,10 @@ export default function ScheduleDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 flex flex-col gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 flex flex-col gap-6">
           {/* Hero */}
-          <div className="relative bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-8 overflow-hidden group shadow-2xl">
+          <div className="relative bg-zinc-900 border border-zinc-800 rounded-[2.5rem] p-6 md:p-8 overflow-hidden group shadow-2xl">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] font-black text-[8rem] italic pointer-events-none uppercase tracking-tighter text-zinc-100">
               {format(schedule.timestamp, 'HH:mm')}
             </div>
@@ -278,17 +283,17 @@ export default function ScheduleDetail() {
               </div>
               <div>
                 <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-zinc-100 leading-tight">{schedule.title}</h2>
-                <div className="flex flex-wrap gap-6 items-center mt-6 pt-6 border-t border-zinc-800/50">
-                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-lime-400" /><span className="text-xs font-bold text-zinc-300 uppercase">{schedule.location}</span></div>
-                  <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-lime-400" /><span className="text-xs font-bold text-zinc-300 uppercase">{format(schedule.timestamp, 'HH:mm')} WIB</span></div>
-                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-lime-400" /><span className="text-xs font-bold text-zinc-300 uppercase">{participants.length} Pemain</span></div>
+                <div className="flex flex-wrap gap-4 items-center mt-5 pt-5 border-t border-zinc-800/50 text-[11px]">
+                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{schedule.location}</span></div>
+                  <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{format(schedule.timestamp, 'HH:mm')} WIB</span></div>
+                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{participants.length} Pemain</span></div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Rincian Biaya */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-xl">
               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-2">Sewa & DP</p>
               <div className="space-y-1">
@@ -304,7 +309,7 @@ export default function ScheduleDetail() {
                 )) : <p className="text-[10px] text-zinc-600 font-bold italic">Tidak ada biaya tambahan</p>}
               </div>
             </div>
-            <div className="bg-lime-400 text-zinc-950 rounded-3xl p-6 shadow-lg shadow-lime-400/10 flex flex-col justify-between">
+            <div className="bg-lime-400 text-zinc-950 rounded-3xl p-6 shadow-lg shadow-lime-400/10 flex flex-col justify-between gap-3">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-2">Ekonomi Laga</p>
                 <div className="space-y-1">
@@ -312,7 +317,14 @@ export default function ScheduleDetail() {
                   <div className="flex justify-between text-sm font-black border-t border-zinc-950/10 pt-1"><span>Iuran Fix:</span><span className="italic">Rp {iuranFix.toLocaleString('id-ID')}</span></div>
                 </div>
               </div>
-              
+
+              {(schedule.responsibleName || schedule.responsibleUserId) && (
+                <div className="bg-white/80 text-zinc-900 rounded-2xl p-3 shadow-inner">
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-70 mb-1">Penanggung Jawab</p>
+                  <p className="text-sm font-black italic truncate">{schedule.responsibleName || schedule.responsibleUserId}</p>
+                </div>
+              )}
+
               {isAdmin && (
                 <div className="mt-4 pt-4 border-t border-zinc-950/20">
                   <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Status Keuangan (Admin)</p>
@@ -332,17 +344,20 @@ export default function ScheduleDetail() {
           </div>
 
           {/* Join Actions */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-lime-400/10 rounded-2xl flex items-center justify-center text-lime-400"><Users className="w-7 h-7" /></div>
-              <div><h4 className="text-xl font-black italic uppercase tracking-tighter text-zinc-100">Ayo Join Laga!</h4><p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Pilih posisi di formasi lapangan</p></div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6 shadow-xl sticky bottom-4 md:static z-20">
+            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-lime-400/10 rounded-2xl flex items-center justify-center text-lime-400"><Users className="w-6 h-6 md:w-7 md:h-7" /></div>
+              <div className="min-w-0">
+                <h4 className="text-lg md:text-xl font-black italic uppercase tracking-tighter text-zinc-100 line-clamp-1">Ayo Join Laga!</h4>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setIsFormationModalOpen(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Lihat Formasi</button>
+            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+              <button onClick={() => setIsFormationModalOpen(true)} className="flex-1 md:flex-none bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Formasi</button>
               {hasJoined ? (
-                <button onClick={handleLeave} className="bg-red-500 hover:bg-red-400 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar Laga</button>
+                <button onClick={handleLeave} className="flex-1 md:flex-none bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar</button>
               ) : (
-                <button onClick={() => setIsJoinModalOpen(true)} className="bg-lime-400 hover:bg-lime-300 text-zinc-950 px-10 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
+                <button onClick={() => setIsJoinModalOpen(true)} className="flex-1 md:flex-none bg-lime-400 hover:bg-lime-300 text-zinc-950 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
               )}
             </div>
           </div>

@@ -220,7 +220,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Lokasi / Lapangan</label>
                 <div className="relative">
@@ -250,7 +250,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Sewa Lapangan (Rp)</label>
                 <input
@@ -284,70 +284,70 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Biaya Tambahan (Opsional)</label>
-                <button 
-                  type="button"
-                  onClick={addOtherCost}
-                  className="text-[10px] font-black uppercase text-lime-400 hover:text-lime-300"
-                >
-                  + Tambah Biaya
-                </button>
-              </div>
-              {canAssignResponsible && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Penanggung Jawab</label>
-                    <div className="relative">
-                      <select
-                        value={formData.responsibleUserId}
-                        onChange={(e) => {
-                          const selected = users.find(u => u.id === e.target.value);
-                          setFormData(prev => ({
-                            ...prev,
-                            responsibleUserId: e.target.value,
-                            responsibleName: selected?.name || ''
-                          }));
-                        }}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:border-lime-400 outline-none text-zinc-100"
-                      >
-                        <option value="" className="bg-zinc-900">Pilih user</option>
-                        {users.map(u => (
-                          <option key={u.id} value={u.id} className="bg-zinc-900">{u.name}</option>
-                        ))}
-                      </select>
-                      <User className="w-4 h-4 text-zinc-500 absolute right-4 top-1/2 -translate-y-1/2" />
-                    </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Biaya Tambahan (Opsional)</label>
+              <button 
+                type="button"
+                onClick={addOtherCost}
+                className="text-[10px] font-black uppercase text-lime-400 hover:text-lime-300"
+              >
+                + Tambah Biaya
+              </button>
+            </div>
+            {canAssignResponsible && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Penanggung Jawab</label>
+                  <div className="relative">
+                    <select
+                      value={formData.responsibleUserId}
+                      onChange={(e) => {
+                        const selected = users.find(u => u.id === e.target.value);
+                        setFormData(prev => ({
+                          ...prev,
+                          responsibleUserId: e.target.value,
+                          responsibleName: selected?.name || ''
+                        }));
+                      }}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:border-lime-400 outline-none text-zinc-100"
+                    >
+                      <option value="" className="bg-zinc-900">Pilih user</option>
+                      {users.map(u => (
+                        <option key={u.id} value={u.id} className="bg-zinc-900">{u.name}</option>
+                      ))}
+                    </select>
+                    <User className="w-4 h-4 text-zinc-500 absolute right-4 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
-              )}
-              {formData.otherCosts.map((cost, index) => (
-                <div key={index} className="flex gap-2 animate-in fade-in slide-in-from-top-1">
-                  <input
-                    type="text"
-                    value={cost.description}
-                    onChange={(e) => updateOtherCost(index, 'description', e.target.value)}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs focus:border-lime-400 outline-none"
-                    placeholder="Uraian (misal: Aqua)"
-                  />
-                  <input
-                    type="text"
-                    value={cost.amount.toLocaleString('id-ID')}
-                    onChange={(e) => updateOtherCost(index, 'amount', e.target.value)}
-                    className="w-32 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs font-bold focus:border-lime-400 outline-none"
-                    placeholder="0"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => removeOtherCost(index)}
-                    className="p-2 text-zinc-500 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
+              </div>
+            )}
+            {formData.otherCosts.map((cost, index) => (
+              <div key={index} className="flex gap-2 animate-in fade-in slide-in-from-top-1">
+                <input
+                  type="text"
+                  value={cost.description}
+                  onChange={(e) => updateOtherCost(index, 'description', e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs focus:border-lime-400 outline-none"
+                  placeholder="Uraian (misal: Aqua)"
+                />
+                <input
+                  type="text"
+                  value={cost.amount.toLocaleString('id-ID')}
+                  onChange={(e) => updateOtherCost(index, 'amount', e.target.value)}
+                  className="w-32 bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-xs font-bold focus:border-lime-400 outline-none"
+                  placeholder="0"
+                />
+                <button 
+                  type="button"
+                  onClick={() => removeOtherCost(index)}
+                  className="p-2 text-zinc-500 hover:text-red-400"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
 
             <div className="bg-lime-400/5 border border-lime-400/20 rounded-2xl p-6 mt-4">
               <div className="flex justify-between items-center">
