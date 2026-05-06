@@ -41,27 +41,28 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    if (schedule && isOpen) {
-      const tsValue = typeof schedule.timestamp === 'number'
-        ? schedule.timestamp
-        : schedule.timestamp?.toMillis?.() ?? Date.now();
+    if (!schedule || !isOpen) return;
 
-      setFormData({
-        title: schedule.title || '',
-        location: schedule.location || '',
-        datetime: tsValue ? format(tsValue, "yyyy-MM-dd'T'HH:mm") : '',
-        type: schedule.type || 'latihan',
-        fieldCost: schedule.fieldCost || 0,
-        dpCost: schedule.dpCost || 0,
-        feePerPlayer: schedule.feePerPlayer || 0,
-        responsibleUserId: schedule.responsibleUserId || '',
-        responsibleName: schedule.responsibleName || '',
-        otherCosts: schedule.otherCosts || []
-      });
-      setFormattedFieldCost((schedule.fieldCost || 0).toLocaleString('id-ID'));
-      setFormattedDpCost((schedule.dpCost || 0).toLocaleString('id-ID'));
-      setFormattedFeePerPlayer((schedule.feePerPlayer || 0).toLocaleString('id-ID'));
-    }
+    const tsValue = typeof schedule.timestamp === 'number'
+      ? schedule.timestamp
+      : schedule.timestamp?.toMillis?.() ?? null;
+
+    setFormData({
+      title: schedule.title || '',
+      location: schedule.location || '',
+      datetime: tsValue ? format(tsValue, "yyyy-MM-dd'T'HH:mm") : '',
+      type: schedule.type || 'latihan',
+      fieldCost: schedule.fieldCost || 0,
+      dpCost: schedule.dpCost || 0,
+      feePerPlayer: schedule.feePerPlayer || 0,
+      responsibleUserId: schedule.responsibleUserId || '',
+      responsibleName: schedule.responsibleName || '',
+      otherCosts: schedule.otherCosts || []
+    });
+
+    setFormattedFieldCost((schedule.fieldCost || 0).toLocaleString('id-ID'));
+    setFormattedDpCost((schedule.dpCost || 0).toLocaleString('id-ID'));
+    setFormattedFeePerPlayer((schedule.feePerPlayer || 0).toLocaleString('id-ID'));
   }, [schedule, isOpen]);
 
   if (!isOpen) return null;
