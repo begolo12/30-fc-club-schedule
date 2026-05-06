@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["displayName", "email", "createdAt", "updatedAt"]
+    },
+    "Schedule": {
+      "title": "Schedule",
+      "description": "Futsal game schedule",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "dateText": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "location": { "type": "string" },
+        "fieldCost": { "type": "number" },
+        "otherCost": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "creatorId": { "type": "string" },
+        "status": { "type": "string", "enum": ["upcoming", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "dateText", "timestamp", "location", "fieldCost", "otherCost", "totalCost", "creatorId", "status", "createdAt", "updatedAt"]
+    },
+    "Participant": {
+      "title": "Participant",
+      "description": "User joining a schedule",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["Goalkeeper", "Player"] },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "role", "joinedAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Chat message in a schedule",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profile information."
+    },
+    "/schedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/Schedule" },
+      "description": "Stores futsal game schedules."
+    },
+    "/schedules/{scheduleId}/participants/{participantId}": {
+      "schema": { "$ref": "#/entities/Participant" },
+      "description": "Stores participants joining a specific schedule."
+    },
+    "/schedules/{scheduleId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores chat messages for a specific schedule."
+    }
+  }
+}

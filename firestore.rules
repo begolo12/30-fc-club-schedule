@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Phase 3: Primitive Definition
+    function isSignedIn() { return request.auth != null; }
+    
+    // Identity verification
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // Admin check - bootstrap admin@30fc.club
+    function isAdmin() { 
+      return isSignedIn() && request.auth.token.email == 'admin@30fc.club'; 
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Hardened ID validation
+    function isValidId(id) { 
+      return id is string && id.size() >= 1 && id.size() <= 128;
+    }
+
+    // Phase 2: Validation Blueprints (Anti-Update-Gap)
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['displayName', 'email', 'createdAt', 'updatedAt']) 
+        && data.keys().size() == 4
+        && data.displayName is string && data.displayName.size() <= 500
+        && data.email is string && data.email.size() <= 500
+        && (data.createdAt is timestamp || data.createdAt is number)
+        && (data.updatedAt is timestamp || data.updatedAt is number);
+    }
+
+    function isValidSchedule(data) {
+      return data.keys().hasAll(['title', 'dateText', 'timestamp', 'location', 'fieldCost', 'otherCost', 'totalCost', 'creatorId', 'status', 'createdAt', 'updatedAt']) 
+        && data.keys().size() == 11
+        && data.title is string && data.title.size() <= 1000
+        && data.dateText is string
+        && (data.timestamp is number || data.timestamp is timestamp)
+        && data.location is string
+        && data.fieldCost is number
+        && data.otherCost is number
+        && data.totalCost is number
+        && data.creatorId is string
+        && data.status is string && data.status in ['upcoming', 'completed', 'cancelled']
+        && (data.createdAt is timestamp || data.createdAt is number)
+        && (data.updatedAt is timestamp || data.updatedAt is number);
+    }
+
+    // Match Blocks
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(incoming());
+    }
+
+    match /schedules/{scheduleId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && (isAdmin() || incoming().creatorId == request.auth.uid) && isValidSchedule(incoming());
+      allow update: if isSignedIn() && (isAdmin() || existing().creatorId == request.auth.uid) && isValidSchedule(incoming());
+      allow delete: if isAdmin() || (isSignedIn() && existing().creatorId == request.auth.uid);
+
+      match /participants/{participantId} {
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && (request.auth.uid == participantId || isAdmin());
+      }
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+        allow delete: if (isSignedIn() && existing().userId == request.auth.uid) || isAdmin();
+      }
+    }
+
+    // Default deny ALL
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
