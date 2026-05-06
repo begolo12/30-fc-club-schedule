@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import BottomNavbar from './components/BottomNavbar';
@@ -41,10 +41,83 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// Component to handle Android back button
+function AndroidBackButtonHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    let backPressedOnce = false;
+    let backPressTimeout: NodeJS.Timeout;
+
+    const handleBackButton = () => {
+      const isRootPath = location.pathname === '/' || location.pathname === '/login';
+
+      if (isRootPath) {
+        if (backPressedOnce) {
+          // Allow app to close
+          return true;
+        }
+
+        backPressedOnce = true;
+        showExitToast();
+
+        backPressTimeout = setTimeout(() => {
+          backPressedOnce = false;
+        }, 2000);
+
+        // Prevent default back behavior
+        return false;
+      }
+
+      // Not on root, navigate back normally
+      return true;
+    };
+
+    // Override history back for Android
+    const originalBack = window.history.back;
+    window.history.back = function() {
+      if (handleBackButton()) {
+        originalBack.call(window.history);
+      }
+    };
+
+    return () => {
+      window.history.back = originalBack;
+      if (backPressTimeout) {
+        clearTimeout(backPressTimeout);
+      }
+    };
+  }, [location, navigate]);
+
+  return null;
+}
+
+function showExitToast() {
+  const existingToast = document.getElementById('exit-toast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  const toast = document.createElement('div');
+  toast.id = 'exit-toast';
+  toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-zinc-900 text-zinc-100 px-6 py-3 rounded-full shadow-lg z-[9999] text-sm font-bold';
+  toast.style.animation = 'slideUp 0.3s ease-out';
+  toast.textContent = 'Tekan sekali lagi untuk keluar';
+  
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = 'slideDown 0.3s ease-in';
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AndroidBackButtonHandler />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />

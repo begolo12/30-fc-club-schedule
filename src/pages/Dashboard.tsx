@@ -8,6 +8,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
 import UserSettingsModal from '../components/UserSettingsModal';
+import { listenForNewSchedules } from '../lib/realtimeNotifications';
 
 interface Schedule {
   id: string;
@@ -73,13 +74,17 @@ export default function Dashboard() {
       setTotalPlayers(snapshot.size);
     });
 
+    // 4. Setup notification listener for new schedules
+    const scheduleListener = user ? listenForNewSchedules(user.uid) : { unsubscribe: () => {} };
+
     return () => {
       unsubMatches();
       unsubFinance();
       unsubSettings();
       unsubUsers();
+      scheduleListener.unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const nextMatch = upcomingMatches[0];

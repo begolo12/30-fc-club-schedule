@@ -4,6 +4,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
+import { showNotification } from '../lib/notifications';
 
 interface OtherCost {
   description: string;
@@ -90,6 +91,24 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
         totalCost,
         status: 'upcoming',
         createdAt: serverTimestamp()
+      });
+
+      // Show notification for new schedule
+      const scheduleDate = new Date(formData.datetime);
+      const formattedDate = scheduleDate.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      await showNotification({
+        title: '🎯 Jadwal Baru Ditambahkan!',
+        body: `${formData.title} - ${formattedDate} di ${formData.location}`,
+        tag: 'new-schedule',
+        requireInteraction: false
       });
 
       onClose();

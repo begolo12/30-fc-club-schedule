@@ -9,47 +9,52 @@ export default function BottomNavbar() {
 
   if (!user) return null;
 
+  const navItems = [
+    { to: '/', icon: Home, label: 'Home' },
+    { to: '/calendar', icon: Calendar, label: 'Calendar' },
+    { to: '/finance', icon: Wallet, label: 'Finance' },
+  ];
+
+  if (isAdmin) {
+    navItems.push({ to: '/admin', icon: Settings, label: 'Settings' });
+  }
+
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 md:hidden w-auto">
-      <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800/80 rounded-[2rem] p-1.5 flex items-center gap-1 shadow-2xl">
-        <NavLink 
-          to="/" 
-          className={({ isActive }) => `p-2.5 rounded-full transition-all ${isActive ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <Home className="w-5 h-5" />
-        </NavLink>
-        
-        <NavLink 
-          to="/calendar" 
-          className={({ isActive }) => `p-2.5 rounded-full transition-all ${isActive ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <Calendar className="w-5 h-5" />
-        </NavLink>
+    <nav className="fixed bottom-4 left-4 right-4 z-50 md:hidden">
+      <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800/80 rounded-[2rem] p-3 shadow-2xl">
+        <div className="flex items-center justify-between gap-2">
+          {/* Navigation Items */}
+          <div className="flex items-center gap-1 flex-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => 
+                  `flex flex-col items-center gap-1 px-3 py-2 rounded-2xl transition-all flex-1 ${
+                    isActive 
+                      ? 'bg-lime-400 text-zinc-950 shadow-lg' 
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`
+                }
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">{item.label}</span>
+              </NavLink>
+            ))}
+          </div>
 
-        <NavLink 
-          to="/finance" 
-          className={({ isActive }) => `p-2.5 rounded-full transition-all ${isActive ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <Wallet className="w-5 h-5" />
-        </NavLink>
+          {/* Divider */}
+          <div className="w-[1px] h-12 bg-zinc-800" />
 
-        {isAdmin && (
-          <NavLink 
-            to="/admin" 
-            className={({ isActive }) => `p-2.5 rounded-full transition-all ${isActive ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+          {/* Logout Button */}
+          <button
+            onClick={signOut}
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-2xl text-zinc-600 hover:text-red-400 hover:bg-zinc-800/50 transition-all"
           >
-            <Settings className="w-5 h-5" />
-          </NavLink>
-        )}
-
-        <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
-
-        <button 
-          onClick={signOut}
-          className="p-2.5 rounded-full text-zinc-600 hover:text-red-400 transition-all"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+            <LogOut className="w-5 h-5" />
+            <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">Logout</span>
+          </button>
+        </div>
       </div>
     </nav>
   );

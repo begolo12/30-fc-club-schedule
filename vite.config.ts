@@ -7,12 +7,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
+    base: mode === 'production' && !process.env.VERCEL ? '/30-fc-club-schedule/' : '/',
     plugins: [
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        manifestFilename: 'manifest.json',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'firebase-messaging-sw.js'],
         manifest: {
           name: '30 FC Club Manager',
           short_name: '30 FC',
@@ -20,6 +22,9 @@ export default defineConfig(({ mode }) => {
           theme_color: '#09090b',
           background_color: '#09090b',
           display: 'standalone',
+          start_url: '/',
+          scope: '/',
+          orientation: 'portrait',
           icons: [
             {
               src: 'icons/icon-192.png',
@@ -38,6 +43,27 @@ export default defineConfig(({ mode }) => {
               purpose: 'any maskable'
             }
           ]
+        },
+        workbox: {
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'firebase-storage-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                }
+              }
+            }
+          ],
+          // Don't cache firebase-messaging-sw.js
+          navigateFallbackDenylist: [/^\/firebase-messaging-sw\.js$/]
+        },
+        devOptions: {
+          enabled: true,
+          type: 'module'
         }
       })
     ],

@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
 import FormationModal from '../components/FormationModal';
+import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
 
 interface Schedule {
   id: string;
@@ -65,7 +66,7 @@ export default function ScheduleDetail() {
   const [showQris, setShowQris] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !user) return;
     
     const unsubSchedule = onSnapshot(doc(db, 'schedules', id), (snapshot) => {
       if (snapshot.exists()) {
@@ -93,12 +94,27 @@ export default function ScheduleDetail() {
       if (snapshot.exists()) setQrisUrl(snapshot.data().qrisUrl);
     });
 
+    // Setup realtime notification listeners
+    const chatListener = listenForChatNotifications(
+      id, 
+      user.uid, 
+      schedule?.title || 'Pertandingan'
+    );
+
+    const paymentListener = listenForPaymentNotifications(
+      id,
+      isAdmin,
+      schedule?.title || 'Pertandingan'
+    );
+
     return () => {
       unsubSchedule();
       unsubParts();
       unsubMsgs();
+      chatListener.unsubscribe();
+      paymentListener.unsubscribe();
     };
-  }, [id]);
+  }, [id, user, isAdmin, schedule?.title]);
 
   if (loading) return <div className="py-12 text-center text-zinc-500 uppercase tracking-widest font-black text-[10px] animate-pulse">Memuat Pertandingan...</div>;
   if (!schedule) return <div className="py-12 flex flex-col items-center justify-center text-zinc-500 uppercase tracking-widest font-bold text-xs"><p>Pertandingan tidak ditemukan.</p><button onClick={() => navigate('/')} className="mt-4 bg-lime-400 text-zinc-950 px-4 py-2 rounded-full">Kembali</button></div>;

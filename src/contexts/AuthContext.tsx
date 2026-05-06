@@ -3,6 +3,7 @@ import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut 
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
+import { requestNotificationPermission } from '../lib/notifications';
 
 interface AuthContextType {
   user: User | null;
@@ -49,6 +50,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (error: any) {
             console.error(error);
           }
+
+          // Request notification permission after user logs in
+          requestNotificationPermission().catch(err => {
+            console.warn('Failed to request notification permission:', err);
+          });
+
+          // Note: FCM is disabled for now, using realtime notifications instead
+          // Realtime notifications work without FCM setup and are simpler
         } else {
           setIsAdmin(false);
           setNickname('');

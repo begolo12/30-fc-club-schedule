@@ -24,3 +24,26 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(161, 161, 170, 0.8); /* zinc-400 */
 }
+
+/* Android Back Button Toast Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+}
