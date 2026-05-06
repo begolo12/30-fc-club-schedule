@@ -10,6 +10,9 @@ import ScheduleDetail from './pages/ScheduleDetail';
 import Finance from './pages/Finance';
 import CalendarView from './pages/CalendarView';
 import AdminSettings from './pages/AdminSettings';
+import Map from './pages/Map/Map';
+import Inventory from './pages/Inventory';
+import Announcements from './pages/Announcements';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -122,7 +125,10 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<PrivateRoute><Layout><Dashboard /></Layout></PrivateRoute>} />
           <Route path="/calendar" element={<PrivateRoute><Layout><CalendarView /></Layout></PrivateRoute>} />
+          <Route path="/map" element={<PrivateRoute><Layout><Map /></Layout></PrivateRoute>} />
           <Route path="/finance" element={<PrivateRoute><Layout><Finance /></Layout></PrivateRoute>} />
+          <Route path="/inventory" element={<PrivateRoute><Layout><Inventory /></Layout></PrivateRoute>} />
+          <Route path="/announcements" element={<PrivateRoute><Layout><Announcements /></Layout></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><Layout><AdminSettings /></Layout></AdminRoute>} />
           <Route path="/schedule/:id" element={<PrivateRoute><Layout><ScheduleDetail /></Layout></PrivateRoute>} />
         </Routes>

@@ -2,13 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, limit, where, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, LogOut, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone } from 'lucide-react';
 import { format, startOfToday } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
-import UserSettingsModal from '../components/UserSettingsModal';
+import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { listenForNewSchedules } from '../lib/realtimeNotifications';
+import UserSettingsModal from '../components/UserSettingsModal';
+
+interface Transaction {
+  id: string;
+  amount: number;
+  type: 'income' | 'expense';
+  description: string;
+  userName?: string;
+  timestamp: number;
+  matchId?: string;
+}
 
 interface Schedule {
   id: string;
@@ -16,36 +26,52 @@ interface Schedule {
   timestamp: number;
   location: string;
   status: string;
+  deletedAt?: number;
+  deletionReason?: string;
 }
 
-interface Transaction {
-  amount: number;
-  type: 'income' | 'expense';
+interface ClubUser {
+  id: string;
+  displayName?: string;
+  nickname?: string;
+  role?: string;
 }
 
 export default function Dashboard() {
   const { user, nickname, signOut } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState<Schedule[]>([]);
+  const [cancelledMatches, setCancelledMatches] = useState<Schedule[]>([]);
   const [balance, setBalance] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
+  const [players, setPlayers] = useState<ClubUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Fetch upcoming matches
+    // 1. Fetch matches (both active and recently cancelled)
     const today = startOfToday().getTime();
     const qMatches = query(
       collection(db, 'schedules'),
       where('timestamp', '>=', today),
       orderBy('timestamp', 'asc'),
-      limit(6)
+      limit(10)
     );
 
     const unsubMatches = onSnapshot(qMatches, (snapshot) => {
-      const data: Schedule[] = [];
+      const active: Schedule[] = [];
+      const cancelled: Schedule[] = [];
+      const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+
       snapshot.forEach(doc => {
-        data.push({ id: doc.id, ...doc.data() } as Schedule);
+        const data = { id: doc.id, ...doc.data() } as Schedule;
+        if (data.status !== 'cancelled') {
+          active.push(data);
+        } else if (data.deletedAt && data.deletedAt > twoHoursAgo) {
+          cancelled.push(data);
+        }
       });
-      setUpcomingMatches(data.filter(s => s.status !== 'cancelled'));
+      
+      setUpcomingMatches(active);
+      setCancelledMatches(cancelled);
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'schedules'));
 
@@ -62,17 +88,28 @@ export default function Dashboard() {
       });
       txTotal = total;
       setBalance(txTotal + initBal);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'finance'));
 
     const unsubSettings = onSnapshot(doc(db, 'settings', 'finance'), (settingsDoc) => {
       initBal = settingsDoc.exists() ? settingsDoc.data().initialBalance || 0 : 0;
       setBalance(txTotal + initBal);
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/finance'));
 
     // 3. Fetch real user count
     const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const data: ClubUser[] = [];
+      snapshot.forEach((userDoc) => {
+        const userData = userDoc.data() as ClubUser;
+        data.push({
+          id: userDoc.id,
+          displayName: userData.displayName,
+          nickname: userData.nickname,
+          role: userData.role,
+        });
+      });
       setTotalPlayers(snapshot.size);
-    });
+      setPlayers(data);
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
     // 4. Setup notification listener for new schedules
     const scheduleListener = user ? listenForNewSchedules(user.uid) : { unsubscribe: () => {} };
@@ -87,10 +124,37 @@ export default function Dashboard() {
   }, [user]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
 
   return (
     <div className="flex-1 flex flex-col gap-8">
+      {/* Cancellation Notifications */}
+      {cancelledMatches.length > 0 && (
+        <div className="space-y-3 px-1 animate-in slide-in-from-top-4 duration-500">
+          {cancelledMatches.map(match => (
+            <div key={match.id} className="relative bg-red-500/10 border border-red-500/20 rounded-2xl p-4 overflow-hidden group">
+              <div className="absolute top-0 right-0 p-3 opacity-10">
+                <AlertTriangle className="w-12 h-12 text-red-500" />
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center text-red-500 shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 pr-6">
+                  <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1 italic">Jadwal Dibatalkan!</h4>
+                  <p className="text-sm font-black text-white uppercase italic tracking-tighter mb-2">{match.title}</p>
+                  <div className="p-3 bg-zinc-950/50 rounded-xl border border-red-500/10">
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">Alasan:</p>
+                    <p className="text-xs font-bold text-red-400 italic">"{match.deletionReason || 'Tidak ada alasan spesifik'}"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <header className="flex justify-between items-start px-1 pt-2">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100">
@@ -105,6 +169,9 @@ export default function Dashboard() {
           >
             <SettingsIcon className="w-5 h-5" />
           </button>
+          <Link to="/announcements" className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-lime-400 hover:border-lime-400/50 transition-all shadow-lg" title="Pengumuman">
+            <Megaphone className="w-5 h-5" />
+          </Link>
           <button 
             onClick={signOut}
             className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-400 hover:border-red-400/50 transition-all shadow-lg"
@@ -115,6 +182,40 @@ export default function Dashboard() {
       </header>
 
       <UserSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
+      {isPlayersOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-950/85 backdrop-blur-md" onClick={() => setIsPlayersOpen(false)} />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-lime-400">Daftar Pemain</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Lihat anggota yang sudah terdaftar</p>
+              </div>
+              <button onClick={() => setIsPlayersOpen(false)} className="rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
+                <XIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {players.length === 0 ? (
+                <div className="px-5 py-8 text-center text-sm font-bold uppercase tracking-widest text-zinc-500">Belum ada pemain</div>
+              ) : (
+                players.map((player) => (
+                  <div key={player.id} className="flex items-center gap-3 border-b border-zinc-800/80 px-5 py-3 last:border-b-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 font-black uppercase text-lime-300">
+                      {(player.nickname || player.displayName || 'P')[0]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'Pemain'}</p>
+                      <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'Pemain'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Compact Stats Grid */}
       <div className="grid grid-cols-3 gap-3">
@@ -128,11 +229,15 @@ export default function Dashboard() {
           <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Jadwal</p>
           <h3 className="text-xs font-black italic text-zinc-100">{upcomingMatches.length}</h3>
         </div>
-        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+        <button
+          type="button"
+          onClick={() => setIsPlayersOpen(true)}
+          className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 transition-all"
+        >
           <Users className="w-5 h-5 text-orange-400 mb-2 opacity-50" />
           <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pemain</p>
           <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
-        </div>
+        </button>
       </div>
 
       {/* Compact Hero: Next Match */}

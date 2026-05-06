@@ -2,7 +2,7 @@
  * Firebase Cloud Messaging utilities for push notifications
  */
 
-import { messaging, getToken, onMessage } from './firebase';
+import { getMessagingSafe, getToken, onMessage, messaging } from './firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -17,7 +17,8 @@ const VAPID_KEY = import.meta.env.VITE_VAPID_KEY || 'YOUR_VAPID_KEY_HERE';
  * @returns Promise<string | null> - FCM token or null if failed
  */
 export async function requestFCMToken(userId: string): Promise<string | null> {
-  if (!messaging) {
+  const messagingInstance = messaging || await getMessagingSafe();
+  if (!messagingInstance) {
     console.warn('Firebase Messaging not supported');
     return null;
   }
@@ -35,7 +36,7 @@ export async function requestFCMToken(userId: string): Promise<string | null> {
     console.log('Service Worker registered:', registration);
 
     // Get FCM token
-    const token = await getToken(messaging, {
+    const token = await getToken(messagingInstance, {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
@@ -71,7 +72,7 @@ export function setupForegroundMessageListener(
   callback: (payload: any) => void
 ): (() => void) | null {
   if (!messaging) {
-    console.warn('Firebase Messaging not supported');
+    console.warn('Firebase Messaging not ready');
     return null;
   }
 

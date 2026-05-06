@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Calendar, Wallet, Settings, LogOut, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { Home, Calendar, Wallet, Settings, LogOut, ChevronLeft, ChevronRight, Menu, Map as MapIcon, Megaphone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
 export default function Sidebar() {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, role, signOut } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   if (!user) return null;
 
   const navItems = [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/calendar', icon: Calendar, label: 'Calendar' },
-    { to: '/finance', icon: Wallet, label: 'Finance' },
+    { to: '/', icon: Home, label: 'Beranda' },
+    { to: '/calendar', icon: Calendar, label: 'Kalender' },
+    // { to: '/map', icon: MapIcon, label: 'Maps' }, // Hidden temporarily
+    { to: '/finance', icon: Wallet, label: 'Kas' },
+    { to: '/inventory', icon: MapIcon, label: 'Inventaris' },
+    { to: '/announcements', icon: Megaphone, label: 'Pengumuman' },
   ];
 
-  if (isAdmin) {
+  if (isAdmin || role === 'Ketua Club') {
     navItems.push({ to: '/admin', icon: Settings, label: 'Settings' });
   }
 

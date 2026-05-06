@@ -152,10 +152,10 @@ export default function Finance() {
   // Admin: Fetch all pending approvals
   useEffect(() => {
     if (!isAdmin) return;
-    // Note: This requires a collection group index for 'participants' if filtering by paymentStatus
-    // If index not ready, we might need a different approach, but let's try.
-    const q = query(collectionGroup(db, 'participants'), where('paymentStatus', 'in', ['pending_qris', 'pending_cash']));
-    const unsub = onSnapshot(q, async (snapshot) => {
+    const q = query(collectionGroup(db, 'participants'), where('paymentStatus', '==', 'pending_qris'));
+    const qCash = query(collectionGroup(db, 'participants'), where('paymentStatus', '==', 'pending_cash'));
+
+    const unsubQr = onSnapshot(q, async (snapshot) => {
       const pending: any[] = [];
       for (const docSnap of snapshot.docs) {
         const matchId = docSnap.ref.parent.parent?.id;
@@ -169,9 +169,36 @@ export default function Finance() {
           });
         }
       }
-      setPendingApprovals(pending);
-    }, (error) => console.error("Index required for collectionGroup:", error));
-    return unsub;
+      setPendingApprovals((prev) => {
+        const others = prev.filter(p => p.paymentStatus !== 'pending_qris');
+        return [...others, ...pending];
+      });
+    }, (error) => console.error('Index required (QRIS):', error));
+
+    const unsubCash = onSnapshot(qCash, async (snapshot) => {
+      const pending: any[] = [];
+      for (const docSnap of snapshot.docs) {
+        const matchId = docSnap.ref.parent.parent?.id;
+        if (matchId) {
+          const matchSnap = await getDoc(doc(db, 'schedules', matchId));
+          pending.push({
+            id: docSnap.id,
+            matchId,
+            matchTitle: matchSnap.data()?.title || 'Laga',
+            ...docSnap.data()
+          });
+        }
+      }
+      setPendingApprovals((prev) => {
+        const others = prev.filter(p => p.paymentStatus !== 'pending_cash');
+        return [...others, ...pending];
+      });
+    }, (error) => console.error('Index required (Cash):', error));
+
+    return () => {
+      unsubQr();
+      unsubCash();
+    };
   }, [isAdmin]);
 
   const handlePay = async (matchId: string, method: 'pending_qris' | 'pending_cash') => {

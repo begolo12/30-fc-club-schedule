@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, Clock, Trash2 } from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { X, Calendar, MapPin, Clock, Trash2, User } from 'lucide-react';
+import { doc, updateDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OtherCost {
   description: string;
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) {
+  const { isAdmin, role } = useAuth();
+  const canAssignResponsible = isAdmin || role === 'Ketua Club' || role === 'Sekretaris';
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -26,11 +29,16 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
     type: 'latihan' as 'latihan' | 'sparing',
     fieldCost: 0,
     dpCost: 0,
+    feePerPlayer: 0,
+    responsibleUserId: '',
+    responsibleName: '',
     otherCosts: [] as OtherCost[]
   });
 
   const [formattedFieldCost, setFormattedFieldCost] = useState('0');
   const [formattedDpCost, setFormattedDpCost] = useState('0');
+  const [formattedFeePerPlayer, setFormattedFeePerPlayer] = useState('0');
+  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (schedule && isOpen) {
@@ -41,10 +49,14 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
         type: schedule.type || 'latihan',
         fieldCost: schedule.fieldCost || 0,
         dpCost: schedule.dpCost || 0,
+        feePerPlayer: schedule.feePerPlayer || 0,
+        responsibleUserId: schedule.responsibleUserId || '',
+        responsibleName: schedule.responsibleName || '',
         otherCosts: schedule.otherCosts || []
       });
       setFormattedFieldCost((schedule.fieldCost || 0).toLocaleString('id-ID'));
       setFormattedDpCost((schedule.dpCost || 0).toLocaleString('id-ID'));
+      setFormattedFeePerPlayer((schedule.feePerPlayer || 0).toLocaleString('id-ID'));
     }
   }, [schedule, isOpen]);
 
@@ -53,11 +65,12 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
   const parseNumber = (val: string) => parseInt(val.replace(/\./g, '')) || 0;
   const formatNumber = (num: number) => num.toLocaleString('id-ID');
 
-  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost') => {
+  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost' | 'feePerPlayer') => {
     const numeric = parseNumber(val);
     setFormData(prev => ({ ...prev, [field]: numeric }));
     if (field === 'fieldCost') setFormattedFieldCost(formatNumber(numeric));
-    else setFormattedDpCost(formatNumber(numeric));
+    else if (field === 'dpCost') setFormattedDpCost(formatNumber(numeric));
+    else setFormattedFeePerPlayer(formatNumber(numeric));
   };
 
   const addOtherCost = () => {
@@ -89,6 +102,24 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
     return formData.fieldCost + others;
   };
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!canAssignResponsible) return;
+      try {
+        const snap = await getDocs(collection(db, 'users'));
+        const data: { id: string; name: string }[] = [];
+        snap.forEach((d) => {
+          const userData = d.data() as any;
+          data.push({ id: d.id, name: userData.nickname || userData.displayName || 'Pemain' });
+        });
+        setUsers(data);
+      } catch (err) {
+        console.warn('Gagal memuat user untuk penanggung jawab', err);
+      }
+    };
+    fetchUsers();
+  }, [canAssignResponsible]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -104,6 +135,9 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
         type: formData.type,
         fieldCost: formData.fieldCost,
         dpCost: formData.dpCost,
+        feePerPlayer: formData.feePerPlayer,
+        responsibleUserId: formData.responsibleUserId,
+        responsibleName: formData.responsibleName,
         otherCosts: formData.otherCosts,
         totalCost
       });
@@ -200,7 +234,7 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Sewa Lapangan (Rp)</label>
                 <input
@@ -221,13 +255,51 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm font-bold text-lime-400 focus:border-lime-400 outline-none"
                 />
               </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Iuran / Pemain (Rp)</label>
+                <input
+                  required
+                  type="text"
+                  value={formattedFeePerPlayer}
+                  onChange={(e) => handleCostChange(e.target.value, 'feePerPlayer')}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm font-bold text-amber-300 focus:border-lime-400 outline-none"
+                  placeholder="Contoh: 25000"
+                />
+              </div>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Biaya Tambahan</label>
                 <button type="button" onClick={addOtherCost} className="text-[10px] font-black uppercase text-lime-400">+ Tambah</button>
               </div>
+              {canAssignResponsible && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Penanggung Jawab</label>
+                    <div className="relative">
+                      <select
+                        value={formData.responsibleUserId}
+                        onChange={(e) => {
+                          const selected = users.find(u => u.id === e.target.value);
+                          setFormData(prev => ({
+                            ...prev,
+                            responsibleUserId: e.target.value,
+                            responsibleName: selected?.name || ''
+                          }));
+                        }}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:border-lime-400 outline-none text-zinc-100"
+                      >
+                        <option value="" className="bg-zinc-900">Pilih user</option>
+                        {users.map(u => (
+                          <option key={u.id} value={u.id} className="bg-zinc-900">{u.name}</option>
+                        ))}
+                      </select>
+                      <User className="w-4 h-4 text-zinc-500 absolute right-4 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                </div>
+              )}
               {formData.otherCosts.map((cost, index) => (
                 <div key={index} className="flex gap-2 animate-in fade-in slide-in-from-top-1">
                   <input

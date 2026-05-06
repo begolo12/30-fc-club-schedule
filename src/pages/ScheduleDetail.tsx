@@ -11,6 +11,7 @@ import { cn } from '../lib/utils';
 import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
 import FormationModal from '../components/FormationModal';
+import DeleteScheduleModal from '../components/DeleteScheduleModal';
 import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
 
 interface Schedule {
@@ -25,6 +26,8 @@ interface Schedule {
   totalCost: number;
   status: string;
   creatorId: string;
+  deletedAt?: number;
+  deletionReason?: string;
 }
 
 interface Participant {
@@ -62,6 +65,7 @@ export default function ScheduleDetail() {
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormationModalOpen, setIsFormationModalOpen] = useState(false);
   const [showQris, setShowQris] = useState(false);
 
@@ -149,6 +153,21 @@ export default function ScheduleDetail() {
     if (!confirm('Apakah Anda yakin ingin keluar dari pertandingan ini?')) return;
     try { await deleteDoc(doc(db, 'schedules', id, 'participants', user.uid)); } 
     catch (err) { handleFirestoreError(err, OperationType.DELETE, 'participants'); }
+  };
+
+  const handleConfirmDelete = async (reason: string) => {
+    if (!isAdmin || !id) return;
+    try {
+      await updateDoc(doc(db, 'schedules', id), {
+        status: 'cancelled',
+        deletedAt: Date.now(),
+        deletionReason: reason
+      });
+      setIsDeleteModalOpen(false);
+      navigate('/');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'schedule');
+    }
   };
 
   const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
@@ -239,6 +258,7 @@ export default function ScheduleDetail() {
           {isAdmin && (
             <>
               <button onClick={() => setIsEditModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-lime-400 transition-colors"><Edit2 className="w-5 h-5" /></button>
+              <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-red-400 transition-colors"><Trash2 className="w-5 h-5" /></button>
             </>
           )}
         </div>
@@ -357,6 +377,12 @@ export default function ScheduleDetail() {
       <JoinMatchModal isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)} onJoin={handleJoin} participants={participants} />
       <FormationModal isOpen={isFormationModalOpen} onClose={() => setIsFormationModalOpen(false)} participants={participants} />
       <EditScheduleModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} schedule={schedule} />
+      <DeleteScheduleModal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)} 
+        onConfirm={handleConfirmDelete}
+        title={schedule.title}
+      />
     </div>
   );
 }

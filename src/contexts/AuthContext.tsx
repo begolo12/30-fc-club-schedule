@@ -4,11 +4,13 @@ import { auth, db } from '../lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { requestNotificationPermission } from '../lib/notifications';
+import { requestFCMToken } from '../lib/fcm';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  role: string;
   nickname: string;
   signInWithGoogle: () => Promise<void>;
   signInAsAdmin: (id: string, pin: string) => Promise<void>;
@@ -22,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState('');
   const [nickname, setNickname] = useState('');
 
   useEffect(() => {
@@ -29,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(currentUser);
         if (currentUser) {
-          setIsAdmin(currentUser.email === 'admin@30fc.club');
+          const isDefaultAdmin = currentUser.email === 'admin@30fc.club';
           
           try {
             const userRef = doc(db, 'users', currentUser.uid);
@@ -40,20 +43,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 displayName: currentUser.displayName || 'Unknown',
                 nickname: initialNickname,
                 email: currentUser.email || '',
+                role: isDefaultAdmin ? 'Admin' : 'Pemain',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
               setNickname(initialNickname);
+              setRole(isDefaultAdmin ? 'Admin' : 'Pemain');
+              setIsAdmin(isDefaultAdmin);
             } else {
-              setNickname(userSnap.data().nickname || userSnap.data().displayName?.substring(0, 6) || 'Pemain');
+              const userData = userSnap.data();
+              setNickname(userData.nickname || userData.displayName?.substring(0, 6) || 'Pemain');
+              setRole(userData.role || (isDefaultAdmin ? 'Admin' : 'Pemain'));
+              setIsAdmin(isDefaultAdmin || userData.role === 'Admin' || userData.role === 'Ketua Club');
             }
           } catch (error: any) {
             console.error(error);
           }
 
-          // Request notification permission after user logs in
+          // Request notification permission after user logs in (for local notifications)
           requestNotificationPermission().catch(err => {
             console.warn('Failed to request notification permission:', err);
+          });
+
+          // Request FCM token (Web Push). If VAPID key not set, this will return null.
+          requestFCMToken(currentUser.uid).catch(err => {
+            console.warn('Failed to register FCM token:', err);
           });
 
           // Note: FCM is disabled for now, using realtime notifications instead
@@ -106,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, nickname, signInWithGoogle, signInAsAdmin, signOut, updateNickname }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, role, nickname, signInWithGoogle, signInAsAdmin, signOut, updateNickname }}>
       {!loading && children}
     </AuthContext.Provider>
   );
