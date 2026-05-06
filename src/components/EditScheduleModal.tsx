@@ -41,71 +41,29 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    if (!schedule || !isOpen) return;
+    if (schedule && isOpen) {
+      const tsValue = typeof schedule.timestamp === 'number'
+        ? schedule.timestamp
+        : schedule.timestamp?.toMillis?.() ?? null;
 
-    const tsValue = typeof schedule.timestamp === 'number'
-      ? schedule.timestamp
-      : schedule.timestamp?.toMillis?.() ?? null;
+      setFormData({
+        title: schedule.title || '',
+        location: schedule.location || '',
+        datetime: tsValue ? format(tsValue, "yyyy-MM-dd'T'HH:mm") : '',
+        type: schedule.type || 'latihan',
+        fieldCost: schedule.fieldCost || 0,
+        dpCost: schedule.dpCost || 0,
+        feePerPlayer: schedule.feePerPlayer || 0,
+        responsibleUserId: schedule.responsibleUserId || '',
+        responsibleName: schedule.responsibleName || '',
+        otherCosts: schedule.otherCosts || []
+      });
 
-    setFormData({
-      title: schedule.title || '',
-      location: schedule.location || '',
-      datetime: tsValue ? format(tsValue, "yyyy-MM-dd'T'HH:mm") : '',
-      type: schedule.type || 'latihan',
-      fieldCost: schedule.fieldCost || 0,
-      dpCost: schedule.dpCost || 0,
-      feePerPlayer: schedule.feePerPlayer || 0,
-      responsibleUserId: schedule.responsibleUserId || '',
-      responsibleName: schedule.responsibleName || '',
-      otherCosts: schedule.otherCosts || []
-    });
-
-    setFormattedFieldCost((schedule.fieldCost || 0).toLocaleString('id-ID'));
-    setFormattedDpCost((schedule.dpCost || 0).toLocaleString('id-ID'));
-    setFormattedFeePerPlayer((schedule.feePerPlayer || 0).toLocaleString('id-ID'));
-  }, [schedule, isOpen]);
-
-  if (!isOpen) return null;
-
-  const parseNumber = (val: string) => parseInt(val.replace(/\./g, '')) || 0;
-  const formatNumber = (num: number) => num.toLocaleString('id-ID');
-
-  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost' | 'feePerPlayer') => {
-    const numeric = parseNumber(val);
-    setFormData(prev => ({ ...prev, [field]: numeric }));
-    if (field === 'fieldCost') setFormattedFieldCost(formatNumber(numeric));
-    else if (field === 'dpCost') setFormattedDpCost(formatNumber(numeric));
-    else setFormattedFeePerPlayer(formatNumber(numeric));
-  };
-
-  const addOtherCost = () => {
-    setFormData(prev => ({
-      ...prev,
-      otherCosts: [...prev.otherCosts, { description: '', amount: 0 }]
-    }));
-  };
-
-  const updateOtherCost = (index: number, field: keyof OtherCost, value: string) => {
-    const newCosts = [...formData.otherCosts];
-    if (field === 'amount') {
-      newCosts[index].amount = parseNumber(value);
-    } else {
-      newCosts[index].description = value;
+      setFormattedFieldCost((schedule.fieldCost || 0).toLocaleString('id-ID'));
+      setFormattedDpCost((schedule.dpCost || 0).toLocaleString('id-ID'));
+      setFormattedFeePerPlayer((schedule.feePerPlayer || 0).toLocaleString('id-ID'));
     }
-    setFormData(prev => ({ ...prev, otherCosts: newCosts }));
-  };
-
-  const removeOtherCost = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      otherCosts: prev.otherCosts.filter((_, i) => i !== index)
-    }));
-  };
-
-  const calculateTotal = () => {
-    const others = formData.otherCosts.reduce((acc, curr) => acc + curr.amount, 0);
-    return formData.fieldCost + others;
-  };
+  }, [schedule, isOpen]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -124,6 +82,8 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
     };
     fetchUsers();
   }, [canAssignResponsible]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
