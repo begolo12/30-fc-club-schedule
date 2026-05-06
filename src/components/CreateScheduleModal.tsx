@@ -3,6 +3,7 @@ import { X, Calendar, MapPin, Clock, Trash2 } from 'lucide-react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
+import { cn } from '../lib/utils';
 
 interface OtherCost {
   description: string;
@@ -20,6 +21,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
     title: '',
     location: '',
     datetime: '',
+    type: 'latihan' as 'latihan' | 'sparing',
     fieldCost: 0,
     dpCost: 0,
     otherCosts: [] as OtherCost[]
@@ -81,6 +83,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
         title: formData.title,
         location: formData.location,
         timestamp,
+        type: formData.type,
         fieldCost: formData.fieldCost,
         dpCost: formData.dpCost,
         otherCosts: formData.otherCosts,
@@ -94,6 +97,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
         title: '',
         location: '',
         datetime: '',
+        type: 'latihan',
         fieldCost: 0,
         dpCost: 0,
         otherCosts: []
@@ -121,6 +125,36 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3 block">Jenis Laga</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: 'latihan' })}
+                  className={cn(
+                    "py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                    formData.type === 'latihan' 
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]" 
+                      : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                  )}
+                >
+                  Latihan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: 'sparing' })}
+                  className={cn(
+                    "py-3 rounded-xl border-2 font-black text-[10px] uppercase tracking-widest transition-all",
+                    formData.type === 'sparing' 
+                      ? "bg-red-500/20 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]" 
+                      : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
+                  )}
+                >
+                  Sparing
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Judul Pertandingan</label>
               <input

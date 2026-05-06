@@ -30,6 +30,7 @@ interface Participant {
   id: string;
   userId: string;
   name: string;
+  nickname?: string;
   role: string;
   team: 'A' | 'B';
   status: 'starting' | 'substitute';
@@ -41,6 +42,7 @@ interface Message {
   id: string;
   userId: string;
   name: string;
+  nickname?: string;
   text: string;
   timestamp: number | Timestamp;
 }
@@ -48,7 +50,7 @@ interface Message {
 export default function ScheduleDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, nickname } = useAuth();
   
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -105,7 +107,9 @@ export default function ScheduleDetail() {
   const teamBParticipants = participants.filter(p => p.team === 'B');
   const hasJoined = participants.some(p => p.userId === user?.uid);
   const myRecord = participants.find(p => p.userId === user?.uid);
-  const costPerPerson = participants.length > 0 ? Math.ceil(schedule.totalCost / participants.length) : schedule.totalCost;
+  const iuranFix = 25000;
+  const totalCollected = participants.filter(p => p.paymentStatus && p.paymentStatus !== 'unpaid').length * iuranFix;
+  const financialDiff = totalCollected - (schedule?.totalCost || 0);
 
   const handleJoin = async (selection: { position: string, team: 'A' | 'B', status: 'starting' | 'substitute' }) => {
     if (!user || !id) return;
@@ -113,6 +117,7 @@ export default function ScheduleDetail() {
       await setDoc(doc(db, 'schedules', id, 'participants', user.uid), {
         userId: user.uid,
         name: user.displayName || 'Pemain Anonim',
+        nickname: nickname || user.displayName?.substring(0, 6) || 'Pemain',
         role: selection.position,
         team: selection.team,
         status: selection.status,
@@ -137,7 +142,7 @@ export default function ScheduleDetail() {
       if (status !== 'unpaid') {
         const p = participants.find(x => x.userId === participantId);
         await setDoc(doc(collection(db, 'finance')), {
-          amount: costPerPerson,
+          amount: iuranFix,
           type: 'income',
           description: `Bayar ${status === 'paid_qris' ? 'QRIS' : 'Tunai'}: ${schedule.title}`,
           userName: p?.name,
@@ -156,6 +161,7 @@ export default function ScheduleDetail() {
       await setDoc(doc(collection(db, 'schedules', id, 'messages')), {
         userId: user.uid,
         name: user.displayName || 'Pemain',
+        nickname: nickname || user.displayName?.substring(0, 6) || 'Pemain',
         text: chatText.trim(),
         timestamp: serverTimestamp()
       });
@@ -183,7 +189,7 @@ export default function ScheduleDetail() {
                 <span className="w-7 h-7 flex items-center justify-center bg-zinc-950 rounded-lg text-[8px] font-black text-lime-400 border border-zinc-800 uppercase">
                   {p.role.split('-')[0]}
                 </span>
-                <span className="font-bold text-[12px] text-zinc-300 uppercase tracking-tight line-clamp-1">{p.name}</span>
+                <span className="font-bold text-[12px] text-zinc-300 uppercase tracking-tight line-clamp-1">{p.nickname || p.name}</span>
               </div>
             <div className="flex items-center gap-2">
               {p.paymentStatus === 'paid_qris' && <QrCode className="w-3.5 h-3.5 text-lime-400" />}
@@ -201,7 +207,7 @@ export default function ScheduleDetail() {
           {squad.filter(p => p.status === 'substitute').map(p => (
             <div key={p.id} className="px-2 py-1 bg-zinc-950/40 border border-zinc-900 rounded-lg opacity-60 flex items-center gap-2">
               <span className="text-[7px] font-black text-zinc-600 uppercase">{p.role}</span>
-              <span className="text-[9px] font-bold text-zinc-500 uppercase">{p.name}</span>
+              <span className="text-[9px] font-bold text-zinc-500 uppercase">{p.nickname || p.name}</span>
             </div>
           ))}
         </div>
@@ -262,12 +268,30 @@ export default function ScheduleDetail() {
                 )) : <p className="text-[10px] text-zinc-600 font-bold italic">Tidak ada biaya tambahan</p>}
               </div>
             </div>
-            <div className="bg-lime-400 text-zinc-950 rounded-3xl p-6 shadow-lg shadow-lime-400/10">
-              <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-2">Ekonomi Laga</p>
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-bold"><span className="opacity-70">Total Biaya:</span><span className="italic">Rp {schedule.totalCost?.toLocaleString('id-ID')}</span></div>
-                <div className="flex justify-between text-sm font-black border-t border-zinc-950/10 pt-1"><span>Iuran/Orang:</span><span className="italic">Rp {costPerPerson?.toLocaleString('id-ID')}</span></div>
+            <div className="bg-lime-400 text-zinc-950 rounded-3xl p-6 shadow-lg shadow-lime-400/10 flex flex-col justify-between">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-2">Ekonomi Laga</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs font-bold"><span className="opacity-70">Total Biaya:</span><span className="italic">Rp {schedule.totalCost?.toLocaleString('id-ID')}</span></div>
+                  <div className="flex justify-between text-sm font-black border-t border-zinc-950/10 pt-1"><span>Iuran Fix:</span><span className="italic">Rp {iuranFix.toLocaleString('id-ID')}</span></div>
+                </div>
               </div>
+              
+              {isAdmin && (
+                <div className="mt-4 pt-4 border-t border-zinc-950/20">
+                  <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Status Keuangan (Admin)</p>
+                  <div className="flex justify-between text-[10px] font-black">
+                    <span className="opacity-60">Terkumpul:</span>
+                    <span className="italic text-emerald-800">Rp {totalCollected.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-black mt-1">
+                    <span className="opacity-60">{financialDiff >= 0 ? 'Surplus:' : 'Kurang:'}</span>
+                    <span className={cn("italic", financialDiff >= 0 ? "text-emerald-900" : "text-red-700")}>
+                      {financialDiff >= 0 ? '+' : '-'} Rp {Math.abs(financialDiff).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

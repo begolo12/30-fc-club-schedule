@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 interface Participant {
   id: string;
   name: string;
+  nickname?: string;
   role: string;
   team: 'A' | 'B';
   status: 'starting' | 'substitute';
@@ -69,7 +70,7 @@ export default function JoinMatchModal({ isOpen, onClose, onJoin, participants }
                 : "bg-zinc-950/50 border-white/10 group-hover:border-lime-400 group-hover:bg-lime-400/20"
             )}>
               {occupant ? (
-                <span className="text-[9px] font-black text-white">{occupant.name.substring(0, 2).toUpperCase()}</span>
+                <span className="text-[9px] font-black text-white">{(occupant.nickname || occupant.name).substring(0, 2).toUpperCase()}</span>
               ) : (
                 <Plus className="w-3.5 h-3.5 text-white/10 group-hover:text-lime-400" />
               )}
@@ -78,7 +79,7 @@ export default function JoinMatchModal({ isOpen, onClose, onJoin, participants }
               "px-1 py-0.5 rounded text-[6px] font-black uppercase tracking-tighter whitespace-nowrap",
               occupant ? "bg-zinc-950 text-white" : "bg-zinc-800 text-zinc-500 group-hover:text-lime-400"
             )}>
-              {occupant ? occupant.name.split(' ')[0] : role}
+              {occupant ? (occupant.nickname || occupant.name.split(' ')[0]).substring(0, 6) : role}
             </div>
           </button>
         );

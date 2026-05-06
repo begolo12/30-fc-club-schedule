@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 interface Participant {
   id: string;
   name: string;
+  nickname?: string;
   role: string;
   team: 'A' | 'B';
   status: 'starting' | 'substitute';
@@ -42,7 +43,7 @@ export default function FormationModal({ isOpen, onClose, participants }: Format
                 : "bg-zinc-950/30 border-white/5"
             )}>
               {occupant ? (
-                <span className="text-[9px] font-black text-white">{occupant.name.substring(0, 2).toUpperCase()}</span>
+                <span className="text-[9px] font-black text-white">{(occupant.nickname || occupant.name).substring(0, 2).toUpperCase()}</span>
               ) : (
                 <span className="text-[8px] font-black text-white/5 uppercase tracking-tighter">{role[0]}</span>
               )}
@@ -51,7 +52,7 @@ export default function FormationModal({ isOpen, onClose, participants }: Format
               "px-1 py-0.5 rounded text-[6px] font-black uppercase tracking-tighter whitespace-nowrap",
               occupant ? "bg-zinc-950 text-white" : "bg-zinc-800/20 text-zinc-600"
             )}>
-              {occupant ? occupant.name.split(' ')[0] : role}
+              {occupant ? (occupant.nickname || occupant.name.split(' ')[0]).substring(0, 6) : role}
             </div>
           </div>
         );

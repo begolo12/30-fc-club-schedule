@@ -8,9 +8,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAdmin: boolean;
+  nickname: string;
   signInWithGoogle: () => Promise<void>;
   signInAsAdmin: (id: string, pin: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateNickname: (newNickname: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -19,40 +21,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [nickname, setNickname] = useState('');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
         setUser(currentUser);
         if (currentUser) {
-          // Simple admin check based on email
           setIsAdmin(currentUser.email === 'admin@30fc.club');
           
-          // Ensure user document exists
           try {
             const userRef = doc(db, 'users', currentUser.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
+              const initialNickname = (currentUser.displayName || 'Pemain').substring(0, 6);
               await setDoc(userRef, {
                 displayName: currentUser.displayName || 'Unknown',
+                nickname: initialNickname,
                 email: currentUser.email || '',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
+              setNickname(initialNickname);
+            } else {
+              setNickname(userSnap.data().nickname || userSnap.data().displayName?.substring(0, 6) || 'Pemain');
             }
           } catch (error: any) {
-            if (error.message?.includes('offline')) {
-              console.error("Firestore database might not exist or is unreachable. Please ensure Firestore is enabled in the Firebase console and not blocked by network policies.");
-            } else {
-              try {
-                handleFirestoreError(error, OperationType.GET, 'users');
-              } catch (err) {
-                console.error(err);
-              }
-            }
+            console.error(error);
           }
         } else {
           setIsAdmin(false);
+          setNickname('');
         }
       } finally {
         setLoading(false);
@@ -60,6 +59,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     return unsubscribe;
   }, []);
+
+  const updateNickname = async (newNickname: string) => {
+    if (!user) return;
+    const cleanNickname = newNickname.trim().substring(0, 6);
+    await setDoc(doc(db, 'users', user.uid), { 
+      nickname: cleanNickname,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    setNickname(cleanNickname);
+  };
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -70,31 +79,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (id !== 'admin' || pin !== 'admin123') {
       throw new Error('Invalid Admin Credentials');
     }
-    
-    // We implicitly translate 'admin' id into an email for Firebase Auth
     const adminEmail = 'admin@30fc.club';
-    
     try {
       await signInWithEmailAndPassword(auth, adminEmail, pin);
     } catch (error: any) {
-      if (error.code === 'auth/operation-not-allowed') {
-        throw new Error('Please enable Email/Password authentication in your Firebase Console.');
-      }
       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-        try {
-          // Attempt to bootstrap the admin account automatically
-          const cred = await createUserWithEmailAndPassword(auth, adminEmail, pin);
-          await updateProfile(cred.user, { displayName: 'Administrator' });
-        } catch (err: any) {
-          if (err.code === 'auth/operation-not-allowed') {
-            throw new Error('Please enable Email/Password authentication in your Firebase Console.');
-          }
-          if (err.code === 'auth/email-already-in-use') {
-             // It means wrong password was entered during log in, but for our hardcoded check, this shouldn't happen because we checked pin !== 'admin123'
-             throw new Error('Invalid Admin Credentials');
-          }
-          throw err;
-        }
+        const cred = await createUserWithEmailAndPassword(auth, adminEmail, pin);
+        await updateProfile(cred.user, { displayName: 'Administrator' });
       } else {
         throw error;
       }
@@ -106,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signInWithGoogle, signInAsAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, nickname, signInWithGoogle, signInAsAdmin, signOut, updateNickname }}>
       {!loading && children}
     </AuthContext.Provider>
   );

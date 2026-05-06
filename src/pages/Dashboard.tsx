@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, limit, where, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { format, startOfToday } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
+import UserSettingsModal from '../components/UserSettingsModal';
 
 interface Schedule {
   id: string;
@@ -22,7 +23,7 @@ interface Transaction {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, nickname, signOut } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState<Schedule[]>([]);
   const [balance, setBalance] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
@@ -80,16 +81,35 @@ export default function Dashboard() {
     };
   }, []);
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
 
   return (
     <div className="flex-1 flex flex-col gap-8">
-      <header className="flex flex-col gap-1 px-1">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100">
-          Halo, <span className="text-lime-400">{user?.displayName?.split(' ')[0]}</span>
-        </h2>
-        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ikhtisar Pertandingan & Statistik</p>
+      <header className="flex justify-between items-start px-1 pt-2">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100">
+            Halo, <span className="text-lime-400">{nickname || user?.displayName?.split(' ')[0] || 'Pemain'}</span>
+          </h2>
+          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ikhtisar Pertandingan & Statistik</p>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-lime-400 hover:border-lime-400/50 transition-all shadow-lg"
+          >
+            <SettingsIcon className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={signOut}
+            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-400 hover:border-red-400/50 transition-all shadow-lg"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
+
+      <UserSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* Compact Stats Grid */}
       <div className="grid grid-cols-3 gap-3">

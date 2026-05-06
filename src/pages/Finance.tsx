@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, where, collectionGroup } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save, FileText } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save, FileText, X, Check, ArrowLeft, QrCode, Banknote } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
+import { cn } from '../lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -108,12 +109,16 @@ export default function Finance() {
 
     const totalIncome = filtered.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0);
     const totalExpense = filtered.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0);
+    const endBalance = initialBalance + transactions.filter(t => t.timestamp <= end).reduce((acc, t) => t.type === 'income' ? acc + t.amount : acc - t.amount, 0);
 
     autoTable(docPdf, {
       startY: 30,
       head: [['Tanggal', 'Keterangan', 'Nama', 'Masuk', 'Keluar']],
       body: tableData,
-      foot: [['', 'TOTAL', '', `Rp ${totalIncome.toLocaleString('id-ID')}`, `Rp ${totalExpense.toLocaleString('id-ID')}`]],
+      foot: [
+        ['', 'TOTAL PERIODE', '', `Rp ${totalIncome.toLocaleString('id-ID')}`, `Rp ${totalExpense.toLocaleString('id-ID')}`],
+        ['', 'SALDO AKHIR PERIODE', '', '', `Rp ${endBalance.toLocaleString('id-ID')}`]
+      ],
       theme: 'grid',
       headStyles: { fillColor: [163, 230, 53], textColor: [0, 0, 0] },
       footStyles: { fillColor: [244, 244, 245], textColor: [0, 0, 0], fontStyle: 'bold' }
@@ -122,28 +127,135 @@ export default function Finance() {
     docPdf.save(`Laporan_Keuangan_30FC_${exportMonth}.pdf`);
   };
 
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [unpaidMatches, setUnpaidMatches] = useState<any[]>([]);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'schedules'), where('status', '==', 'upcoming'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const matches: any[] = [];
+      snapshot.forEach(async (docSnap) => {
+        const pDoc = await getDoc(doc(db, 'schedules', docSnap.id, 'participants', user.uid));
+        if (pDoc.exists() && pDoc.data().paymentStatus === 'unpaid') {
+          matches.push({ id: docSnap.id, ...docSnap.data() });
+          setUnpaidMatches([...matches]);
+        }
+      });
+    });
+    return unsub;
+  }, [user]);
+
+  // Admin: Fetch all pending approvals
+  useEffect(() => {
+    if (!isAdmin) return;
+    // Note: This requires a collection group index for 'participants' if filtering by paymentStatus
+    // If index not ready, we might need a different approach, but let's try.
+    const q = query(collectionGroup(db, 'participants'), where('paymentStatus', 'in', ['pending_qris', 'pending_cash']));
+    const unsub = onSnapshot(q, async (snapshot) => {
+      const pending: any[] = [];
+      for (const docSnap of snapshot.docs) {
+        const matchId = docSnap.ref.parent.parent?.id;
+        if (matchId) {
+          const matchSnap = await getDoc(doc(db, 'schedules', matchId));
+          pending.push({
+            id: docSnap.id,
+            matchId,
+            matchTitle: matchSnap.data()?.title || 'Laga',
+            ...docSnap.data()
+          });
+        }
+      }
+      setPendingApprovals(pending);
+    }, (error) => console.error("Index required for collectionGroup:", error));
+    return unsub;
+  }, [isAdmin]);
+
+  const handlePay = async (matchId: string, method: 'pending_qris' | 'pending_cash') => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'schedules', matchId, 'participants', user.uid), {
+        paymentStatus: method
+      }, { merge: true });
+      setIsPaymentModalOpen(false);
+      setSelectedMatch(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'payment');
+    }
+  };
+
+  const handleApprove = async (p: any) => {
+    if (!isAdmin) return;
+    try {
+      const finalStatus = p.paymentStatus === 'pending_qris' ? 'paid_qris' : 'paid_cash';
+      // 1. Update participant
+      await setDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId), {
+        paymentStatus: finalStatus
+      }, { merge: true });
+
+      // 2. Add to finance ledger
+      await setDoc(doc(collection(db, 'finance')), {
+        amount: 25000,
+        type: 'income',
+        description: `Iuran ${finalStatus === 'paid_qris' ? 'QRIS' : 'Tunai'}: ${p.matchTitle}`,
+        userName: p.name,
+        userId: p.userId,
+        matchId: p.matchId,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'approval');
+    }
+  };
+
+  const handleReject = async (p: any) => {
+    if (!isAdmin) return;
+    try {
+      await setDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId), {
+        paymentStatus: 'unpaid'
+      }, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'rejection');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-6">
       <header className="flex flex-col gap-4">
-        <div className="px-1">
-          <h2 className="text-2xl font-black italic uppercase tracking-tighter text-lime-400 leading-none">Keuangan Klub</h2>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Arus Kas & Laporan Bulanan</p>
+        <div className="px-1 flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-lime-400 leading-none">Keuangan Klub</h2>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Arus Kas & Laporan Bulanan</p>
+          </div>
+          {!isAdmin && (
+            <button 
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="bg-lime-400 text-zinc-950 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20"
+            >
+              Bayar Iuran
+            </button>
+          )}
         </div>
         
-        <div className="flex items-center gap-2">
-          <input 
-            type="month" 
-            value={exportMonth}
-            onChange={(e) => setExportMonth(e.target.value)}
-            className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-lime-400/50 [color-scheme:dark]"
-          />
-          <button 
-            onClick={exportToPDF}
-            className="flex items-center gap-2 bg-lime-400 text-zinc-950 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-          >
-            <Download className="w-3.5 h-3.5" /> Cetak PDF
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <input 
+              type="month" 
+              value={exportMonth}
+              onChange={(e) => setExportMonth(e.target.value)}
+              className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-lime-400/50 [color-scheme:dark]"
+            />
+            <button 
+              onClick={exportToPDF}
+              className="flex items-center gap-2 bg-lime-400 text-zinc-950 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              <Download className="w-3.5 h-3.5" /> Cetak PDF
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Compact Balance Cards */}
@@ -189,6 +301,53 @@ export default function Finance() {
         </div>
       </div>
 
+      {/* Admin: Pending Approvals */}
+      {isAdmin && pendingApprovals.length > 0 && (
+        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">Persetujuan Iuran (Pending)</h4>
+            <span className="text-[8px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
+              {pendingApprovals.length} PERLU APPROVAL
+            </span>
+          </div>
+          <div className="space-y-2">
+            {pendingApprovals.map(p => (
+              <div key={`${p.matchId}-${p.userId}`} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 flex flex-col gap-3 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                      {p.paymentStatus === 'pending_qris' ? <QrCode className="w-5 h-5" /> : <Banknote className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <h5 className="text-[11px] font-black text-zinc-100 uppercase tracking-tight line-clamp-1">{p.name}</h5>
+                      <p className="text-[8px] text-zinc-500 font-bold uppercase mt-0.5">{p.matchTitle}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black italic text-zinc-100">Rp 25.000</span>
+                    <p className="text-[7px] text-orange-400 font-black uppercase tracking-widest mt-0.5">{p.paymentStatus === 'pending_qris' ? 'VIA QRIS' : 'VIA TUNAI'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button 
+                    onClick={() => handleApprove(p)}
+                    className="flex-1 bg-lime-400 text-zinc-950 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-lime-300 transition-all"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Approve
+                  </button>
+                  <button 
+                    onClick={() => handleReject(p)}
+                    className="flex-1 bg-zinc-800 text-zinc-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all"
+                  >
+                    <X className="w-3.5 h-3.5" /> Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Transactions List */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
@@ -231,6 +390,94 @@ export default function Finance() {
           )}
         </div>
       </div>
+      {/* Payment Modal */}
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-md" onClick={() => setIsPaymentModalOpen(false)} />
+          <div className="relative w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-xl font-black italic uppercase tracking-tighter text-lime-400">Bayar Iuran</h3>
+              <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-500 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+              {selectedMatch ? (
+                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={() => setSelectedMatch(null)}
+                      className="text-[8px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400"
+                    >
+                      <ArrowLeft className="w-3 h-3" /> Kembali ke Daftar
+                    </button>
+                    <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl">
+                      <h4 className="text-sm font-black italic uppercase tracking-tighter text-lime-400">{selectedMatch.title}</h4>
+                      <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{selectedMatch.location}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Pilih Metode Pembayaran</p>
+                    <button 
+                      onClick={() => handlePay(selectedMatch.id, 'pending_qris')}
+                      className="w-full bg-zinc-950 border border-zinc-800 p-5 rounded-2xl flex items-center gap-4 hover:border-lime-400 group transition-all"
+                    >
+                      <div className="w-12 h-12 bg-lime-400/10 rounded-xl flex items-center justify-center text-lime-400 group-hover:scale-110 transition-transform">
+                        <QrCode className="w-6 h-6" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-black italic uppercase tracking-tighter text-zinc-100 block">QRIS (Otomatis)</span>
+                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Verifikasi oleh Admin</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => handlePay(selectedMatch.id, 'pending_cash')}
+                      className="w-full bg-zinc-950 border border-zinc-800 p-5 rounded-2xl flex items-center gap-4 hover:border-lime-400 group transition-all"
+                    >
+                      <div className="w-12 h-12 bg-orange-400/10 rounded-xl flex items-center justify-center text-orange-400 group-hover:scale-110 transition-transform">
+                        <Banknote className="w-6 h-6" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-black italic uppercase tracking-tighter text-zinc-100 block">Bayar Tunai / Cash</span>
+                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Serahkan ke Bendahara</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Pilih Jadwal Pertandingan</p>
+                  {unpaidMatches.length === 0 ? (
+                    <div className="text-center py-8 opacity-40">
+                      <p className="text-[10px] font-bold uppercase tracking-widest">Tidak ada jadwal yang belum dibayar</p>
+                    </div>
+                  ) : (
+                    unpaidMatches.map(match => (
+                      <button 
+                        key={match.id}
+                        onClick={() => setSelectedMatch(match)}
+                        className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-2xl flex flex-col gap-2 hover:border-lime-400/50 transition-all text-left"
+                      >
+                        <div className="flex justify-between items-start">
+                          <h4 className="text-sm font-black italic uppercase tracking-tighter text-zinc-100">{match.title}</h4>
+                          <span className="text-[10px] font-black text-lime-400">Rp 25.000</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[8px] font-bold text-zinc-600 uppercase tracking-widest">
+                          <span>{format(match.timestamp, 'EEEE, d MMM', { locale: idLocale })}</span>
+                          <span>•</span>
+                          <span>{match.location}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
