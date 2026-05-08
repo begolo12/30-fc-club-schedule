@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, orderBy, setDoc, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, setDoc, deleteDoc, updateDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -177,7 +177,13 @@ export default function ScheduleDetail() {
 
   const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!isAdmin || !id) return;
+    if (status !== 'unpaid' && !confirm('Konfirmasi pembayaran sudah masuk?')) return;
     try {
+      // Prevent double entry
+      const pDoc = await getDoc(doc(db, 'schedules', id, 'participants', participantId));
+      const current = pDoc.data()?.paymentStatus;
+      if ((current === 'paid_qris' || current === 'paid_cash') && status !== 'unpaid') return;
+
       await updateDoc(doc(db, 'schedules', id, 'participants', participantId), { paymentStatus: status });
       if (status !== 'unpaid') {
         const p = participants.find(x => x.userId === participantId);

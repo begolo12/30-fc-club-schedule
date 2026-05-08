@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, getDocs } from 'firebase/firestore';
-import { db, storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '../lib/firebase';
 import { Camera, Save, CheckCircle2, QrCode, Users, Shield, Briefcase, UserCircle, Search, ChevronRight } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
@@ -58,17 +57,18 @@ export default function AdminSettings() {
 
     setUploading(true);
     try {
-      const storageRef = ref(storage, 'settings/qris.png');
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setQrisUrl(url);
-      
-      await setDoc(doc(db, 'settings', 'club_info'), { qrisUrl: url }, { merge: true });
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result as string;
+        await setDoc(doc(db, 'settings', 'club_info'), { qrisUrl: base64 }, { merge: true });
+        setQrisUrl(base64);
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error("Upload error:", error);
-    } finally {
       setUploading(false);
     }
   };

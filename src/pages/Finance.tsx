@@ -131,7 +131,16 @@ export default function Finance() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [unpaidMatches, setUnpaidMatches] = useState<any[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [showQrisImage, setShowQrisImage] = useState(false);
+  const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'club_info'), (snap) => {
+      if (snap.exists()) setQrisUrl(snap.data().qrisUrl || null);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -209,6 +218,7 @@ export default function Finance() {
       }, { merge: true });
       setIsPaymentModalOpen(false);
       setSelectedMatch(null);
+      setShowQrisImage(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'payment');
     }
@@ -216,14 +226,18 @@ export default function Finance() {
 
   const handleApprove = async (p: any) => {
     if (!isAdmin) return;
+    if (!confirm(`Konfirmasi pembayaran ${p.name} sudah masuk?`)) return;
     try {
+      // Check current status to prevent double approval
+      const pDoc = await getDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId));
+      const currentStatus = pDoc.data()?.paymentStatus;
+      if (currentStatus === 'paid_qris' || currentStatus === 'paid_cash') return;
+
       const finalStatus = p.paymentStatus === 'pending_qris' ? 'paid_qris' : 'paid_cash';
-      // 1. Update participant
       await setDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId), {
         paymentStatus: finalStatus
       }, { merge: true });
 
-      // 2. Add to finance ledger
       await setDoc(doc(collection(db, 'finance')), {
         amount: 25000,
         type: 'income',
@@ -446,8 +460,31 @@ export default function Finance() {
 
                   <div className="flex flex-col gap-3">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Pilih Metode Pembayaran</p>
+                    
+                    {showQrisImage ? (
+                      <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+                        <button 
+                          onClick={() => setShowQrisImage(false)}
+                          className="text-[8px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400 self-start"
+                        >
+                          <ArrowLeft className="w-3 h-3" /> Kembali
+                        </button>
+                        {qrisUrl ? (
+                          <img src={qrisUrl} alt="QRIS" className="w-full max-w-[240px] rounded-2xl border border-zinc-800" />
+                        ) : (
+                          <p className="text-[10px] text-zinc-500 font-bold py-8">QRIS belum diupload oleh admin</p>
+                        )}
+                        <button 
+                          onClick={() => { handlePay(selectedMatch.id, 'pending_qris'); setShowQrisImage(false); }}
+                          className="w-full bg-lime-400 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-lime-300 transition-all"
+                        >
+                          Sudah Bayar
+                        </button>
+                      </div>
+                    ) : (
+                    <>
                     <button 
-                      onClick={() => handlePay(selectedMatch.id, 'pending_qris')}
+                      onClick={() => setShowQrisImage(true)}
                       className="w-full bg-zinc-950 border border-zinc-800 p-5 rounded-2xl flex items-center gap-4 hover:border-lime-400 group transition-all"
                     >
                       <div className="w-12 h-12 bg-lime-400/10 rounded-xl flex items-center justify-center text-lime-400 group-hover:scale-110 transition-transform">
@@ -471,6 +508,8 @@ export default function Finance() {
                         <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Serahkan ke Bendahara</span>
                       </div>
                     </button>
+                    </>
+                    )}
                   </div>
                 </div>
               ) : (

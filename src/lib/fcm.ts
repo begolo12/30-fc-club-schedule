@@ -9,7 +9,7 @@ import { db } from './firebase';
 // VAPID key - You need to generate this from Firebase Console
 // Go to: Project Settings > Cloud Messaging > Web Push certificates
 // Or set it in .env file as VITE_VAPID_KEY
-const VAPID_KEY = import.meta.env.VITE_VAPID_KEY || 'YOUR_VAPID_KEY_HERE';
+const VAPID_KEY = import.meta.env.VITE_VAPID_KEY || '';
 
 /**
  * Request FCM token and save to Firestore
@@ -17,6 +17,11 @@ const VAPID_KEY = import.meta.env.VITE_VAPID_KEY || 'YOUR_VAPID_KEY_HERE';
  * @returns Promise<string | null> - FCM token or null if failed
  */
 export async function requestFCMToken(userId: string): Promise<string | null> {
+  if (!VAPID_KEY) {
+    console.warn('FCM VAPID key not configured. Skipping push notification setup.');
+    return null;
+  }
+
   const messagingInstance = messaging || await getMessagingSafe();
   if (!messagingInstance) {
     console.warn('Firebase Messaging not supported');
