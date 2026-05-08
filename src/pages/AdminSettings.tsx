@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Camera, Save, CheckCircle2, QrCode, Users, Shield, Briefcase, UserCircle, Search, ChevronRight } from 'lucide-react';
+import { Camera, Save, CheckCircle2, QrCode, Users, Shield, Briefcase, UserCircle, Search, ChevronRight, Calendar, Plus, Trash2 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 
@@ -17,7 +17,7 @@ interface ClubUser {
 }
 
 export default function AdminSettings() {
-  const [activeTab, setActiveTab] = useState<'general' | 'users'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'users' | 'rutin'>('general');
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -26,6 +26,21 @@ export default function AdminSettings() {
   const [clubUsers, setClubUsers] = useState<ClubUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Recurring Schedule State
+  interface RecurringSchedule {
+    id?: string;
+    title: string;
+    location: string;
+    dayOfWeek: number; // 0=Sunday, 1=Monday...
+    time: string; // HH:mm
+    fieldCost: number;
+    feePerPlayer: number;
+    active: boolean;
+  }
+  const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>([]);
+  const [showRutinForm, setShowRutinForm] = useState(false);
+  const [rutinForm, setRutinForm] = useState<RecurringSchedule>({ title: '', location: '', dayOfWeek: 5, time: '20:00', fieldCost: 0, feePerPlayer: 25000, active: true });
 
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'settings', 'club_info'), (doc) => {
@@ -46,6 +61,12 @@ export default function AdminSettings() {
         })) as ClubUser[];
         setClubUsers(users);
         setLoadingUsers(false);
+      });
+      return unsubscribe;
+    }
+    if (activeTab === 'rutin') {
+      const unsubscribe = onSnapshot(collection(db, 'recurringSchedules'), (snapshot) => {
+        setRecurringSchedules(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as RecurringSchedule)));
       });
       return unsubscribe;
     }
@@ -71,6 +92,49 @@ export default function AdminSettings() {
       console.error("Upload error:", error);
       setUploading(false);
     }
+  };
+
+  const handleSaveRutin = async () => {
+    if (!rutinForm.title.trim() || !rutinForm.location.trim()) return;
+    try {
+      await addDoc(collection(db, 'recurringSchedules'), rutinForm);
+      setRutinForm({ title: '', location: '', dayOfWeek: 5, time: '20:00', fieldCost: 0, feePerPlayer: 25000, active: true });
+      setShowRutinForm(false);
+    } catch (err) { handleFirestoreError(err, OperationType.WRITE, 'recurring'); }
+  };
+
+  const handleGenerateSchedule = async (rs: RecurringSchedule) => {
+    // Find next occurrence of the day
+    const now = new Date();
+    const daysUntil = (rs.dayOfWeek - now.getDay() + 7) % 7 || 7;
+    const nextDate = new Date(now.getTime() + daysUntil * 86400000);
+    const [h, m] = rs.time.split(':').map(Number);
+    nextDate.setHours(h, m, 0, 0);
+
+    try {
+      await addDoc(collection(db, 'schedules'), {
+        title: rs.title,
+        location: rs.location,
+        timestamp: nextDate.getTime(),
+        type: 'latihan',
+        fieldCost: rs.fieldCost,
+        dpCost: 0,
+        feePerPlayer: rs.feePerPlayer,
+        otherCosts: [],
+        totalCost: rs.fieldCost,
+        status: 'upcoming',
+        createdAt: new Date()
+      });
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } catch (err) { handleFirestoreError(err, OperationType.WRITE, 'generate-schedule'); }
+  };
+
+  const handleDeleteRutin = async (id: string) => {
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'recurringSchedules', id));
+    } catch (err) { handleFirestoreError(err, OperationType.DELETE, 'recurring'); }
   };
 
   const updateUserRole = async (uid: string, newRole: Role) => {
@@ -115,6 +179,15 @@ export default function AdminSettings() {
             )}
           >
             General
+          </button>
+          <button 
+            onClick={() => setActiveTab('rutin')}
+            className={cn(
+              "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+              activeTab === 'rutin' ? "bg-lime-400 text-zinc-950 shadow-lg" : "text-zinc-500"
+            )}
+          >
+            Jadwal Rutin
           </button>
           <button 
             onClick={() => setActiveTab('users')}
@@ -175,6 +248,67 @@ export default function AdminSettings() {
               )}
             </div>
           </div>
+        </section>
+      ) : activeTab === 'rutin' ? (
+        <section className="space-y-4 px-2 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Template Jadwal Mingguan</h3>
+            <button onClick={() => setShowRutinForm(!showRutinForm)} className="text-[9px] font-black text-lime-400 uppercase tracking-widest hover:text-lime-300">
+              {showRutinForm ? 'Batal' : '+ Tambah'}
+            </button>
+          </div>
+
+          {showRutinForm && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-3">
+              <input type="text" placeholder="Judul (misal: Latihan Mini Soccer Rutin)" value={rutinForm.title} onChange={(e) => setRutinForm({...rutinForm, title: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50 placeholder:text-zinc-700" />
+              <input type="text" placeholder="Lokasi" value={rutinForm.location} onChange={(e) => setRutinForm({...rutinForm, location: e.target.value})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50 placeholder:text-zinc-700" />
+              <div className="grid grid-cols-2 gap-3">
+                <select value={rutinForm.dayOfWeek} onChange={(e) => setRutinForm({...rutinForm, dayOfWeek: parseInt(e.target.value)})} className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50">
+                  <option value={0}>Minggu</option><option value={1}>Senin</option><option value={2}>Selasa</option><option value={3}>Rabu</option><option value={4}>Kamis</option><option value={5}>Jumat</option><option value={6}>Sabtu</option>
+                </select>
+                <input type="time" value={rutinForm.time} onChange={(e) => setRutinForm({...rutinForm, time: e.target.value})} className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50 [color-scheme:dark]" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[8px] font-black text-zinc-600 uppercase">Sewa Lapangan</label>
+                  <input type="number" value={rutinForm.fieldCost} onChange={(e) => setRutinForm({...rutinForm, fieldCost: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
+                </div>
+                <div>
+                  <label className="text-[8px] font-black text-zinc-600 uppercase">Iuran/Pemain</label>
+                  <input type="number" value={rutinForm.feePerPlayer} onChange={(e) => setRutinForm({...rutinForm, feePerPlayer: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
+                </div>
+              </div>
+              <button onClick={handleSaveRutin} disabled={!rutinForm.title.trim() || !rutinForm.location.trim()} className="w-full bg-lime-400 text-zinc-950 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 hover:bg-lime-300 transition-all">Simpan Template</button>
+            </div>
+          )}
+
+          {recurringSchedules.length === 0 && !showRutinForm ? (
+            <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
+              <Calendar className="w-8 h-8 text-zinc-800 mx-auto mb-2 opacity-50" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada jadwal rutin</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recurringSchedules.map(rs => {
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                return (
+                  <div key={rs.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-black text-zinc-100 uppercase italic tracking-tight">{rs.title}</h4>
+                        <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">{rs.location} • {days[rs.dayOfWeek]} {rs.time}</p>
+                      </div>
+                      <button onClick={() => handleDeleteRutin(rs.id!)} className="text-zinc-600 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-zinc-800/50">
+                      <span className="text-[8px] font-black text-zinc-600 uppercase">Rp {rs.fieldCost.toLocaleString('id-ID')} • Iuran Rp {rs.feePerPlayer.toLocaleString('id-ID')}</span>
+                      <button onClick={() => handleGenerateSchedule(rs)} className="bg-lime-400 text-zinc-950 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-lime-300 transition-all">Buat Jadwal →</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       ) : (
         <section className="space-y-4 px-2 animate-in fade-in slide-in-from-bottom-4">

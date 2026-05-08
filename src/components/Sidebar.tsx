@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Home, Calendar, Wallet, Settings, LogOut, ChevronLeft, ChevronRight, Menu, Map as MapIcon, Megaphone } from 'lucide-react';
+import { Home, Calendar, Wallet, Settings, LogOut, ChevronLeft, ChevronRight, Menu, Map as MapIcon, Megaphone, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { to: '/finance', icon: Wallet, label: 'Kas' },
     { to: '/inventory', icon: MapIcon, label: 'Inventaris' },
     { to: '/announcements', icon: Megaphone, label: 'Pengumuman' },
+    { to: '/polling', icon: BarChart3, label: 'Polling' },
   ];
 
   if (isAdmin || role === 'Ketua Club') {

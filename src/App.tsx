@@ -13,6 +13,7 @@ import AdminSettings from './pages/AdminSettings';
 import Map from './pages/Map/Map';
 import Inventory from './pages/Inventory';
 import Announcements from './pages/Announcements';
+import Polling from './pages/Polling';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -129,6 +130,7 @@ export default function App() {
           <Route path="/finance" element={<PrivateRoute><Layout><Finance /></Layout></PrivateRoute>} />
           <Route path="/inventory" element={<PrivateRoute><Layout><Inventory /></Layout></PrivateRoute>} />
           <Route path="/announcements" element={<PrivateRoute><Layout><Announcements /></Layout></PrivateRoute>} />
+          <Route path="/polling" element={<PrivateRoute><Layout><Polling /></Layout></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><Layout><AdminSettings /></Layout></AdminRoute>} />
           <Route path="/schedule/:id" element={<PrivateRoute><Layout><ScheduleDetail /></Layout></PrivateRoute>} />
         </Routes>
