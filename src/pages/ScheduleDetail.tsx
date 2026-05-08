@@ -310,9 +310,6 @@ export default function ScheduleDetail() {
         <div className="flex gap-2">
           {isAdmin && (
             <>
-              {schedule.status === 'upcoming' && (
-                <button onClick={handleCloseMatch} className="px-3 py-2 bg-lime-400 text-zinc-950 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-lime-300 transition-colors">Selesai</button>
-              )}
               <button onClick={() => setIsEditModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-lime-400 transition-colors"><Edit2 className="w-5 h-5" /></button>
               <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-red-400 transition-colors"><Trash2 className="w-5 h-5" /></button>
             </>
@@ -393,6 +390,13 @@ export default function ScheduleDetail() {
               )}
             </div>
           </div>
+
+          {/* Admin: Close Match */}
+          {isAdmin && schedule.status === 'upcoming' && (
+            <button onClick={handleCloseMatch} className="w-full bg-lime-400 hover:bg-lime-300 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-lime-400/10">
+              ✓ Selesaikan Pertandingan
+            </button>
+          )}
 
           {/* Join Actions */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6 shadow-xl sticky bottom-4 md:static z-20">
