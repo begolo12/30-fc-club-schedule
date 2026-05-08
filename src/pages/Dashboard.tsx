@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, where, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, LogOut, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone } from 'lucide-react';
@@ -41,7 +41,10 @@ export default function Dashboard() {
   const { user, nickname, signOut } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState<Schedule[]>([]);
   const [cancelledMatches, setCancelledMatches] = useState<Schedule[]>([]);
+  const [unpaidMatches, setUnpaidMatches] = useState<{id: string; title: string}[]>([]);
   const [balance, setBalance] = useState(0);
+  const [monthIncome, setMonthIncome] = useState(0);
+  const [monthExpense, setMonthExpense] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [players, setPlayers] = useState<ClubUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,12 +85,22 @@ export default function Dashboard() {
 
     const unsubFinance = onSnapshot(collection(db, 'finance'), (snapshot) => {
       let total = 0;
-      snapshot.forEach(doc => {
-        const tx = doc.data() as Transaction;
+      let mIncome = 0;
+      let mExpense = 0;
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      snapshot.forEach(d => {
+        const tx = d.data() as Transaction;
         if (tx.type === 'income') total += tx.amount;
         else total -= tx.amount;
+        if (tx.timestamp >= monthStart) {
+          if (tx.type === 'income') mIncome += tx.amount;
+          else mExpense += tx.amount;
+        }
       });
       txTotal = total;
+      setMonthIncome(mIncome);
+      setMonthExpense(mExpense);
       setBalance(txTotal + initBal);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'finance'));
 
@@ -124,12 +137,45 @@ export default function Dashboard() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || upcomingMatches.length === 0) return;
+    const checkUnpaid = async () => {
+      const unpaid: {id: string; title: string}[] = [];
+      for (const match of upcomingMatches) {
+        const pDoc = await getDoc(doc(db, 'schedules', match.id, 'participants', user.uid));
+        if (pDoc.exists() && pDoc.data().paymentStatus === 'unpaid') {
+          unpaid.push({ id: match.id, title: match.title });
+        }
+      }
+      setUnpaidMatches(unpaid);
+    };
+    checkUnpaid();
+  }, [user, upcomingMatches]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
 
   return (
     <div className="flex-1 flex flex-col gap-8 pb-20">
+      {/* Payment Reminder */}
+      {unpaidMatches.length > 0 && (
+        <div className="mx-1 bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-orange-400/20 rounded-xl flex items-center justify-center text-orange-400 shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">Tagihan Iuran</h4>
+              <p className="text-xs text-zinc-300 font-bold mt-0.5">
+                Kamu belum bayar iuran untuk <span className="text-orange-400 italic">{unpaidMatches.map(m => m.title).join(', ')}</span>
+              </p>
+            </div>
+            <Link to={`/schedule/${unpaidMatches[0].id}`} className="shrink-0 bg-orange-400 text-zinc-950 px-3 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest">Bayar</Link>
+          </div>
+        </div>
+      )}
+
       {/* Cancellation Notifications */}
       {cancelledMatches.length > 0 && (
         <div className="space-y-3 px-1 animate-in slide-in-from-top-4 duration-500">
@@ -258,6 +304,40 @@ export default function Dashboard() {
           <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
         </button>
       </div>
+
+      {/* Finance Chart */}
+      {(monthIncome > 0 || monthExpense > 0) && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl mx-1">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Keuangan Bulan Ini</h4>
+            <span className="text-[8px] font-black text-zinc-600 uppercase">{format(new Date(), 'MMMM yyyy', { locale: idLocale })}</span>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="text-[8px] font-black text-zinc-500 uppercase w-16">Masuk</span>
+              <div className="flex-1 h-6 bg-zinc-950 rounded-lg overflow-hidden">
+                <div className="h-full bg-lime-400 rounded-lg flex items-center px-2 transition-all duration-500" style={{ width: `${Math.min(100, (monthIncome / Math.max(monthIncome, monthExpense)) * 100)}%` }}>
+                  <span className="text-[8px] font-black text-zinc-950">Rp {monthIncome.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[8px] font-black text-zinc-500 uppercase w-16">Keluar</span>
+              <div className="flex-1 h-6 bg-zinc-950 rounded-lg overflow-hidden">
+                <div className="h-full bg-red-400 rounded-lg flex items-center px-2 transition-all duration-500" style={{ width: `${Math.min(100, (monthExpense / Math.max(monthIncome, monthExpense)) * 100)}%` }}>
+                  <span className="text-[8px] font-black text-zinc-950">Rp {monthExpense.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-zinc-800/50">
+              <span className="text-[8px] font-black text-zinc-500 uppercase">Selisih</span>
+              <span className={`text-xs font-black italic ${monthIncome - monthExpense >= 0 ? 'text-lime-400' : 'text-red-400'}`}>
+                {monthIncome - monthExpense >= 0 ? '+' : '-'} Rp {Math.abs(monthIncome - monthExpense).toLocaleString('id-ID')}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Compact Hero: Next Match */}
       {nextMatch ? (

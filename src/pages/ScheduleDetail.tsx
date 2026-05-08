@@ -184,6 +184,30 @@ export default function ScheduleDetail() {
     }
   };
 
+  const handleCloseMatch = () => {
+    if (!isAdmin || !id || !schedule) return;
+    setConfirmDialog({
+      title: 'Selesaikan Pertandingan?',
+      message: `Biaya total Rp ${schedule.totalCost.toLocaleString('id-ID')} akan dicatat sebagai pengeluaran di kas.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await updateDoc(doc(db, 'schedules', id), { status: 'completed', completedAt: Date.now() });
+          // Record expenses to finance
+          await setDoc(doc(collection(db, 'finance')), {
+            amount: schedule.totalCost,
+            type: 'expense',
+            description: `Biaya Laga: ${schedule.title}`,
+            matchId: id,
+            timestamp: Date.now()
+          });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, 'close-match');
+        }
+      }
+    });
+  };
+
   const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!isAdmin || !id) return;
     if (status !== 'unpaid') {
@@ -286,6 +310,9 @@ export default function ScheduleDetail() {
         <div className="flex gap-2">
           {isAdmin && (
             <>
+              {schedule.status === 'upcoming' && (
+                <button onClick={handleCloseMatch} className="px-3 py-2 bg-lime-400 text-zinc-950 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-lime-300 transition-colors">Selesai</button>
+              )}
               <button onClick={() => setIsEditModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-lime-400 transition-colors"><Edit2 className="w-5 h-5" /></button>
               <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:text-red-400 transition-colors"><Trash2 className="w-5 h-5" /></button>
             </>
@@ -302,7 +329,7 @@ export default function ScheduleDetail() {
             </div>
             <div className="relative z-10 flex flex-col gap-6">
               <div className="flex items-center justify-between">
-                <span className="bg-lime-400 text-zinc-950 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic">Detail Pertandingan</span>
+                <span className={cn("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest italic", schedule.status === 'completed' ? "bg-zinc-700 text-zinc-300" : "bg-lime-400 text-zinc-950")}>{schedule.status === 'completed' ? 'Selesai' : 'Detail Pertandingan'}</span>
                 <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">{format(schedule.timestamp, 'EEEE, d MMM yyyy', { locale: idLocale })}</span>
               </div>
               <div>
