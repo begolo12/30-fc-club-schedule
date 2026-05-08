@@ -258,13 +258,11 @@ export default function ScheduleDetail() {
                 <span className="font-bold text-[12px] text-zinc-300 uppercase tracking-tight line-clamp-1">{p.nickname || p.name}</span>
               </div>
             <div className="flex items-center gap-2">
-              {p.paymentStatus === 'paid_qris' && <QrCode className="w-3.5 h-3.5 text-lime-400" />}
-              {p.paymentStatus === 'paid_cash' && <Banknote className="w-3.5 h-3.5 text-lime-400" />}
-              {p.paymentStatus === 'pending_qris' && <Clock className="w-3.5 h-3.5 text-orange-400 animate-spin" />}
-              {isAdmin && (
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => handleVerifyPayment(p.userId, p.paymentStatus === 'paid_cash' ? 'unpaid' : 'paid_cash')} className={cn("w-6 h-6 rounded-md flex items-center justify-center", p.paymentStatus === 'paid_cash' ? "bg-lime-400 text-zinc-950" : "bg-zinc-800 text-zinc-600")}><Banknote className="w-3 h-3" /></button>
-                </div>
+              {p.paymentStatus === 'paid_qris' && <span className="text-[7px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
+              {p.paymentStatus === 'paid_cash' && <span className="text-[7px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
+              {p.paymentStatus === 'pending_qris' && <span className="text-[7px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
+              {isAdmin && p.paymentStatus !== 'paid_qris' && p.paymentStatus !== 'paid_cash' && (
+                <button onClick={() => handleVerifyPayment(p.userId, 'paid_cash')} className="text-[7px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
               )}
             </div>
           </div>
