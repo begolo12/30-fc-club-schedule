@@ -1,8 +1,12 @@
 node_modules/
 build/
 dist/
+dev-dist/
 coverage/
 .DS_Store
 *.log
 .env*
 !.env.example
+.vscode/
+*.json.bak
+fc-1488f-firebase-adminsdk-*.json
