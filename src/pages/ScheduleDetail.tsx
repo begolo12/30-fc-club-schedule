@@ -360,6 +360,15 @@ export default function ScheduleDetail() {
             </div>
             <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
               <button onClick={() => setIsFormationModalOpen(true)} className="flex-1 md:flex-none bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Formasi</button>
+              {hasJoined && myRecord?.paymentStatus === 'unpaid' && (
+                <button onClick={() => setShowQris(true)} className="flex-1 md:flex-none bg-lime-400 hover:bg-lime-300 text-zinc-950 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20">Bayar Iuran</button>
+              )}
+              {hasJoined && myRecord?.paymentStatus === 'pending_qris' && (
+                <span className="flex-1 md:flex-none bg-orange-400/10 border border-orange-400/30 text-orange-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center">Menunggu Verifikasi</span>
+              )}
+              {hasJoined && (myRecord?.paymentStatus === 'paid_qris' || myRecord?.paymentStatus === 'paid_cash') && (
+                <span className="flex-1 md:flex-none bg-lime-400/10 border border-lime-400/30 text-lime-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center">Lunas ✓</span>
+              )}
               {hasJoined ? (
                 <button onClick={handleLeave} className="flex-1 md:flex-none bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar</button>
               ) : (
@@ -404,6 +413,41 @@ export default function ScheduleDetail() {
         onConfirm={handleConfirmDelete}
         title={schedule.title}
       />
+
+      {/* QRIS Payment Modal */}
+      {showQris && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-md" onClick={() => setShowQris(false)} />
+          <div className="relative w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-xl font-black italic uppercase tracking-tighter text-lime-400">Bayar QRIS</h3>
+              <button onClick={() => setShowQris(false)} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-500">✕</button>
+            </div>
+            <div className="p-6 flex flex-col items-center gap-4 overflow-y-auto">
+              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Scan QR lalu klik "Sudah Bayar"</p>
+              {qrisUrl ? (
+                <img src={qrisUrl} alt="QRIS" className="w-full max-w-[260px] rounded-2xl border border-zinc-800" />
+              ) : (
+                <p className="text-[10px] text-zinc-500 font-bold py-8">QRIS belum diupload oleh admin</p>
+              )}
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 w-full text-center">
+                <p className="text-[9px] text-zinc-500 font-bold uppercase">Total Iuran</p>
+                <p className="text-2xl font-black italic text-lime-400">Rp {iuranFix.toLocaleString('id-ID')}</p>
+              </div>
+              <button 
+                onClick={async () => {
+                  if (!confirm('Apakah kamu sudah membayar via QRIS?')) return;
+                  await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_qris' }, { merge: true });
+                  setShowQris(false);
+                }}
+                className="w-full bg-lime-400 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-lime-300 transition-all"
+              >
+                Sudah Bayar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
