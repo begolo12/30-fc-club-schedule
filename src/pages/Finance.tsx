@@ -372,15 +372,15 @@ export default function Finance() {
                 <div className="flex gap-2 pt-1">
                   <button 
                     onClick={() => handleApprove(p)}
-                    className="flex-1 bg-lime-400 text-zinc-950 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-lime-300 transition-all"
+                    className="flex-1 bg-lime-400 text-zinc-950 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center hover:bg-lime-300 transition-all"
                   >
-                    <Check className="w-3.5 h-3.5" /> Approve
+                    Sudah Bayar ✓
                   </button>
                   <button 
                     onClick={() => handleReject(p)}
-                    className="flex-1 bg-zinc-800 text-zinc-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-700 transition-all"
+                    className="flex-1 bg-zinc-800 text-zinc-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center hover:bg-zinc-700 transition-all"
                   >
-                    <X className="w-3.5 h-3.5" /> Reject
+                    Tolak
                   </button>
                 </div>
               </div>

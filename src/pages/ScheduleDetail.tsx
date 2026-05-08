@@ -370,7 +370,11 @@ export default function ScheduleDetail() {
                 <span className="flex-1 md:flex-none bg-lime-400/10 border border-lime-400/30 text-lime-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center">Lunas ✓</span>
               )}
               {hasJoined ? (
-                <button onClick={handleLeave} className="flex-1 md:flex-none bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar</button>
+                myRecord?.paymentStatus === 'unpaid' ? (
+                  <button onClick={handleLeave} className="flex-1 md:flex-none bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar</button>
+                ) : (
+                  <button onClick={() => setIsJoinModalOpen(true)} className="flex-1 md:flex-none bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Ganti Posisi</button>
+                )
               ) : (
                 <button onClick={() => setIsJoinModalOpen(true)} className="flex-1 md:flex-none bg-lime-400 hover:bg-lime-300 text-zinc-950 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
               )}
@@ -426,9 +430,9 @@ export default function ScheduleDetail() {
             <div className="p-6 flex flex-col items-center gap-4 overflow-y-auto">
               <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Scan QR lalu klik "Sudah Bayar"</p>
               {qrisUrl ? (
-                <img src={qrisUrl} alt="QRIS" className="w-full max-w-[260px] rounded-2xl border border-zinc-800" />
+                <img src={qrisUrl} alt="QRIS" className="w-full max-w-[260px] rounded-2xl border border-zinc-800 bg-white p-2" />
               ) : (
-                <p className="text-[10px] text-zinc-500 font-bold py-8">QRIS belum diupload oleh admin</p>
+                <p className="text-[10px] text-zinc-500 font-bold py-8">QRIS belum diupload oleh admin. Upload di menu Admin Settings.</p>
               )}
               <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 w-full text-center">
                 <p className="text-[9px] text-zinc-500 font-bold uppercase">Total Iuran</p>
