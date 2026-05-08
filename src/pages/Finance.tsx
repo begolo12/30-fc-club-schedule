@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, getDocs, where, collectionGroup } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -135,6 +135,11 @@ export default function Finance() {
   const [showQrisImage, setShowQrisImage] = useState(false);
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [expenseDesc, setExpenseDesc] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [myPayments, setMyPayments] = useState<{matchId: string; matchTitle: string; status: string; timestamp: number}[]>([]);
+  const [piutang, setPiutang] = useState<{name: string; count: number; total: number}[]>([]);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -143,6 +148,28 @@ export default function Finance() {
     });
     return unsub;
   }, []);
+
+  // Fetch user's payment history across all matches
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'schedules'), orderBy('timestamp', 'desc'), limit(20));
+    const unsub = onSnapshot(q, async (snapshot) => {
+      const payments: {matchId: string; matchTitle: string; status: string; timestamp: number}[] = [];
+      for (const s of snapshot.docs) {
+        const pDoc = await getDoc(doc(db, 'schedules', s.id, 'participants', user.uid));
+        if (pDoc.exists()) {
+          payments.push({
+            matchId: s.id,
+            matchTitle: s.data().title,
+            status: pDoc.data().paymentStatus || 'unpaid',
+            timestamp: s.data().timestamp
+          });
+        }
+      }
+      setMyPayments(payments);
+    });
+    return unsub;
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -212,6 +239,28 @@ export default function Finance() {
     };
   }, [isAdmin]);
 
+  // Admin: Fetch outstanding debts (piutang)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const q = query(collection(db, 'schedules'), orderBy('timestamp', 'desc'), limit(20));
+    const unsub = onSnapshot(q, async (snapshot) => {
+      const debts: Record<string, {name: string; count: number}> = {};
+      for (const s of snapshot.docs) {
+        const partsSnapshot = await getDocs(collection(db, 'schedules', s.id, 'participants'));
+        partsSnapshot.forEach(p => {
+          const data = p.data();
+          if (data.paymentStatus === 'unpaid') {
+            const key = data.userId || p.id;
+            if (!debts[key]) debts[key] = { name: data.name || data.nickname || 'Unknown', count: 0 };
+            debts[key].count++;
+          }
+        });
+      }
+      setPiutang(Object.values(debts).filter(d => d.count > 0).map(d => ({ ...d, total: d.count * 25000 })).sort((a, b) => b.count - a.count));
+    });
+    return unsub;
+  }, [isAdmin]);
+
   const handlePay = async (matchId: string, method: 'pending_qris' | 'pending_cash') => {
     if (!user) return;
     try {
@@ -271,6 +320,23 @@ export default function Finance() {
     }
   };
 
+  const handleAddExpense = async () => {
+    if (!isAdmin || !expenseDesc.trim() || !expenseAmount) return;
+    try {
+      await setDoc(doc(collection(db, 'finance')), {
+        amount: parseInt(expenseAmount),
+        type: 'expense',
+        description: expenseDesc.trim(),
+        timestamp: Date.now()
+      });
+      setExpenseDesc('');
+      setExpenseAmount('');
+      setShowExpenseForm(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'expense');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-6">
       <header className="flex flex-col gap-4">
@@ -298,10 +364,16 @@ export default function Finance() {
               className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-lime-400/50 [color-scheme:dark]"
             />
             <button 
+              onClick={() => setShowExpenseForm(!showExpenseForm)}
+              className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-red-500/20"
+            >
+              <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
+            </button>
+            <button 
               onClick={exportToPDF}
               className="flex items-center gap-2 bg-lime-400 text-zinc-950 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
             >
-              <Download className="w-3.5 h-3.5" /> Cetak PDF
+              <Download className="w-3.5 h-3.5" /> PDF
             </button>
           </div>
         )}
@@ -350,6 +422,41 @@ export default function Finance() {
         </div>
       </div>
 
+      {/* Expense Form */}
+      {isAdmin && showExpenseForm && (
+        <div className="bg-zinc-900 border border-red-500/20 rounded-3xl p-5 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-4">Tambah Pengeluaran</h4>
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Deskripsi (misal: Beli bola, Air minum)"
+              value={expenseDesc}
+              onChange={(e) => setExpenseDesc(e.target.value)}
+              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-red-400/50 placeholder:text-zinc-700"
+            />
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-zinc-600 font-black">Rp</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-red-400/50 placeholder:text-zinc-700"
+                />
+              </div>
+              <button
+                onClick={handleAddExpense}
+                disabled={!expenseDesc.trim() || !expenseAmount}
+                className="bg-red-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-red-400 transition-all"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin: Pending Approvals */}
       {isAdmin && pendingApprovals.length > 0 && (
         <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -391,6 +498,65 @@ export default function Finance() {
                     Tolak
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Admin: Piutang / Outstanding Debts */}
+      {isAdmin && piutang.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Piutang Iuran</h4>
+            <span className="text-[8px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">
+              Rp {piutang.reduce((a, p) => a + p.total, 0).toLocaleString('id-ID')}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {piutang.map(p => (
+              <div key={p.name} className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-red-400/10 border border-red-400/20 flex items-center justify-center text-red-400 font-black text-[10px]">
+                    {p.count}x
+                  </div>
+                  <div>
+                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight">{p.name}</h5>
+                    <span className="text-[8px] text-zinc-600 font-bold uppercase">{p.count} match belum bayar</span>
+                  </div>
+                </div>
+                <span className="text-xs font-black italic text-red-400">Rp {p.total.toLocaleString('id-ID')}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* My Payment History (for all users) */}
+      {myPayments.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Bayar Saya</h4>
+            <span className="text-[8px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
+              {myPayments.filter(p => p.status === 'paid_qris' || p.status === 'paid_cash').length}/{myPayments.length} Lunas
+            </span>
+          </div>
+          <div className="space-y-2">
+            {myPayments.map(p => (
+              <div key={p.matchId} className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                  <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{p.matchTitle}</h5>
+                  <span className="text-[8px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
+                </div>
+                <span className={`text-[8px] font-black uppercase px-3 py-1.5 rounded-lg border ${
+                  p.status === 'paid_qris' || p.status === 'paid_cash' 
+                    ? 'text-lime-400 bg-lime-400/10 border-lime-400/20' 
+                    : p.status === 'pending_qris' || p.status === 'pending_cash'
+                    ? 'text-orange-400 bg-orange-400/10 border-orange-400/20'
+                    : 'text-red-400 bg-red-400/10 border-red-400/20'
+                }`}>
+                  {p.status === 'paid_qris' || p.status === 'paid_cash' ? 'Lunas' : p.status.includes('pending') ? 'Pending' : 'Belum Bayar'}
+                </span>
               </div>
             ))}
           </div>
