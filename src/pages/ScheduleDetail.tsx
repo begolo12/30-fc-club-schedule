@@ -12,6 +12,7 @@ import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
 import FormationModal from '../components/FormationModal';
 import DeleteScheduleModal from '../components/DeleteScheduleModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
 
 interface Schedule {
@@ -71,6 +72,7 @@ export default function ScheduleDetail() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormationModalOpen, setIsFormationModalOpen] = useState(false);
   const [showQris, setShowQris] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; variant?: 'default' | 'danger'; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -155,9 +157,16 @@ export default function ScheduleDetail() {
 
   const handleLeave = async () => {
     if (!user || !id) return;
-    if (!confirm('Apakah Anda yakin ingin keluar dari pertandingan ini?')) return;
-    try { await deleteDoc(doc(db, 'schedules', id, 'participants', user.uid)); } 
-    catch (err) { handleFirestoreError(err, OperationType.DELETE, 'participants'); }
+    setConfirmDialog({
+      title: 'Keluar Pertandingan?',
+      message: 'Apakah kamu yakin ingin keluar dari pertandingan ini?',
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try { await deleteDoc(doc(db, 'schedules', id, 'participants', user.uid)); } 
+        catch (err) { handleFirestoreError(err, OperationType.DELETE, 'participants'); }
+      }
+    });
   };
 
   const handleConfirmDelete = async (reason: string) => {
@@ -177,9 +186,20 @@ export default function ScheduleDetail() {
 
   const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!isAdmin || !id) return;
-    if (status !== 'unpaid' && !confirm('Konfirmasi pembayaran sudah masuk?')) return;
+    if (status !== 'unpaid') {
+      setConfirmDialog({
+        title: 'Konfirmasi Pembayaran',
+        message: 'Konfirmasi pembayaran sudah masuk?',
+        onConfirm: () => { setConfirmDialog(null); doVerifyPayment(participantId, status); }
+      });
+      return;
+    }
+    doVerifyPayment(participantId, status);
+  };
+
+  const doVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
+    if (!id) return;
     try {
-      // Prevent double entry
       const pDoc = await getDoc(doc(db, 'schedules', id, 'participants', participantId));
       const current = pDoc.data()?.paymentStatus;
       if ((current === 'paid_qris' || current === 'paid_cash') && status !== 'unpaid') return;
@@ -190,7 +210,7 @@ export default function ScheduleDetail() {
         await setDoc(doc(collection(db, 'finance')), {
           amount: iuranFix,
           type: 'income',
-          description: `Bayar ${status === 'paid_qris' ? 'QRIS' : 'Tunai'}: ${schedule.title}`,
+          description: `Bayar ${status === 'paid_qris' ? 'QRIS' : 'Tunai'}: ${schedule!.title}`,
           userName: p?.name,
           userId: p?.userId,
           matchId: id,
@@ -439,10 +459,16 @@ export default function ScheduleDetail() {
                 <p className="text-2xl font-black italic text-lime-400">Rp {iuranFix.toLocaleString('id-ID')}</p>
               </div>
               <button 
-                onClick={async () => {
-                  if (!confirm('Apakah kamu sudah membayar via QRIS?')) return;
-                  await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_qris' }, { merge: true });
-                  setShowQris(false);
+                onClick={() => {
+                  setConfirmDialog({
+                    title: 'Konfirmasi Pembayaran',
+                    message: 'Apakah kamu sudah membayar via QRIS?',
+                    onConfirm: async () => {
+                      setConfirmDialog(null);
+                      await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_qris' }, { merge: true });
+                      setShowQris(false);
+                    }
+                  });
                 }}
                 className="w-full bg-lime-400 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-lime-300 transition-all"
               >
@@ -452,6 +478,15 @@ export default function ScheduleDetail() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmDialog}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        variant={confirmDialog?.variant}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 }

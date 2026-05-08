@@ -7,6 +7,7 @@ import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
+import ConfirmDialog from '../components/ConfirmDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -133,6 +134,7 @@ export default function Finance() {
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
   const [showQrisImage, setShowQrisImage] = useState(false);
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -226,9 +228,15 @@ export default function Finance() {
 
   const handleApprove = async (p: any) => {
     if (!isAdmin) return;
-    if (!confirm(`Konfirmasi pembayaran ${p.name} sudah masuk?`)) return;
+    setConfirmDialog({
+      title: 'Konfirmasi Pembayaran',
+      message: `Konfirmasi pembayaran ${p.name} sudah masuk?`,
+      onConfirm: () => { setConfirmDialog(null); doApprove(p); }
+    });
+  };
+
+  const doApprove = async (p: any) => {
     try {
-      // Check current status to prevent double approval
       const pDoc = await getDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId));
       const currentStatus = pDoc.data()?.paymentStatus;
       if (currentStatus === 'paid_qris' || currentStatus === 'paid_cash') return;
@@ -544,6 +552,14 @@ export default function Finance() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!confirmDialog}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        onCancel={() => setConfirmDialog(null)}
+      />
     </div>
   );
 }
