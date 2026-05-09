@@ -16,8 +16,8 @@ export default defineConfig(({ mode }) => {
         manifestFilename: 'manifest.json',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'firebase-messaging-sw.js'],
         manifest: {
-          name: '30 FC Club Manager',
-          short_name: '30 FC',
+          name: 'Thirty FC Club Manager',
+          short_name: 'Thirty FC',
           description: 'Futsal Club Schedule and Finance Manager',
           theme_color: '#09090b',
           background_color: '#09090b',

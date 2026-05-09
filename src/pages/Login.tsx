@@ -43,16 +43,10 @@ export default function Login() {
     <div className="flex-1 flex flex-col items-center justify-center p-4 relative min-h-[100dvh]">
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden text-center transition-all duration-500">
         {/* Background Decorative Element */}
-        <div className="absolute -top-10 -right-10 opacity-[0.03] font-black text-[12rem] italic pointer-events-none select-none text-zinc-100 leading-none">
-          30
-        </div>
-        
         <div className="relative z-10 flex flex-col items-center">
-          <div className="w-20 h-20 bg-lime-400 text-zinc-950 rounded-[1.25rem] flex items-center justify-center mb-8 transform -rotate-6 shadow-[0_0_30px_rgba(163,230,53,0.3)]">
-            <span className="font-black text-4xl italic">30</span>
-          </div>
+          <img src="/logo.jpeg" alt="Thirty FC" className="w-20 h-20 rounded-[1.25rem] object-cover mb-8 transform -rotate-6 shadow-[0_0_30px_rgba(163,230,53,0.3)]" />
           
-          <h1 className="text-3xl md:text-4xl font-black italic mb-3 tracking-tighter uppercase text-zinc-100">30 FC Club</h1>
+          <h1 className="text-3xl md:text-4xl font-black italic mb-3 tracking-tighter uppercase text-zinc-100">Thirty FC Club</h1>
           <p className="text-zinc-500 mb-10 text-sm max-w-xs leading-relaxed">
             Sign in to manage futsal schedules, join matches, and coordinate with the team.
           </p>

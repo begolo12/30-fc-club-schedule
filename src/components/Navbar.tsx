@@ -9,11 +9,9 @@ export default function Navbar() {
   return (
     <header className="w-full max-w-6xl mx-auto px-4 py-4 md:py-6 flex justify-between items-center bg-zinc-950 shrink-0 border-b border-zinc-900/50 md:border-none">
       <Link to="/" className="flex items-center gap-3 group">
-        <div className="w-10 h-10 bg-lime-400 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-          <span className="text-zinc-950 font-black text-xl italic">30</span>
-        </div>
+        <img src="/logo.jpeg" alt="Thirty FC" className="w-10 h-10 rounded-lg object-cover group-hover:scale-105 transition-transform duration-300" />
         <h1 className="text-xl md:text-2xl font-bold tracking-tight uppercase">
-          30 FC <span className="text-zinc-500 font-medium hidden sm:inline">Club</span>
+          Thirty FC <span className="text-zinc-500 font-medium hidden sm:inline">Club</span>
         </h1>
       </Link>
       

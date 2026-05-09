@@ -91,7 +91,7 @@ export default function Finance() {
     
     // Header
     docPdf.setFontSize(20);
-    docPdf.text('LAPORAN KEUANGAN 30 FC', 105, 15, { align: 'center' });
+    docPdf.text('LAPORAN KEUANGAN THIRTY FC', 105, 15, { align: 'center' });
     docPdf.setFontSize(12);
     docPdf.text(`Periode: ${monthTitle}`, 105, 22, { align: 'center' });
 
