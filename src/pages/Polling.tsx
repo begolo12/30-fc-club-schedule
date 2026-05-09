@@ -22,6 +22,7 @@ export default function Polling() {
   const [showForm, setShowForm] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
+  const [pollTab, setPollTab] = useState<'active' | 'closed'>('active');
 
   useEffect(() => {
     const q = query(collection(db, 'polls'), orderBy('createdAt', 'desc'));
@@ -135,13 +136,23 @@ export default function Polling() {
         </div>
       )}
 
+      {/* Tab Bar */}
+      <div className="flex bg-zinc-900 border border-zinc-800 rounded-2xl p-1 mx-1">
+        <button onClick={() => setPollTab('active')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${pollTab === 'active' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>
+          Berjalan ({polls.filter(p => !p.closed).length})
+        </button>
+        <button onClick={() => setPollTab('closed')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${pollTab === 'closed' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>
+          Selesai ({polls.filter(p => p.closed).length})
+        </button>
+      </div>
+
       {/* Polls List */}
       <div className="space-y-4">
-        {polls.length === 0 ? (
+        {polls.filter(p => pollTab === 'active' ? !p.closed : p.closed).length === 0 ? (
           <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada polling</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">{pollTab === 'active' ? 'Belum ada polling aktif' : 'Belum ada polling selesai'}</p>
           </div>
-        ) : polls.map(poll => {
+        ) : polls.filter(p => pollTab === 'active' ? !p.closed : p.closed).map(poll => {
           const total = getTotalVotes(poll);
           const myVote = poll.options.findIndex(o => o.votes.includes(user?.uid || ''));
           return (
