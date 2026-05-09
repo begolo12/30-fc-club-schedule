@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, updateDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -15,6 +15,7 @@ interface GalleryPost {
   userName: string;
   userId: string;
   createdAt: Timestamp | number;
+  reactions?: Record<string, string[]>; // emoji -> userId[]
 }
 
 export default function Gallery() {
@@ -102,6 +103,25 @@ export default function Gallery() {
       if (lightbox?.id === post.id) setLightbox(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, 'gallery');
+    }
+  };
+
+  const REACTIONS = ['🔥', '❤️', '😂', '💪'];
+
+  const handleReaction = async (post: GalleryPost, emoji: string) => {
+    if (!user) return;
+    const reactions = { ...(post.reactions || {}) };
+    const users = reactions[emoji] || [];
+    if (users.includes(user.uid)) {
+      reactions[emoji] = users.filter(u => u !== user.uid);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    } else {
+      reactions[emoji] = [...users, user.uid];
+    }
+    try {
+      await updateDoc(doc(db, 'gallery', post.id), { reactions });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'gallery-reaction');
     }
   };
 
@@ -307,7 +327,27 @@ export default function Gallery() {
             <img src={lightbox.imageUrl} alt={lightbox.caption} className="w-full max-h-[70vh] object-contain rounded-2xl" />
             <div className="mt-4 px-2">
               {lightbox.caption && <p className="text-sm font-bold text-zinc-200">{lightbox.caption}</p>}
-              <div className="flex items-center justify-between mt-1">
+              {/* Reactions */}
+              <div className="flex items-center gap-2 mt-3">
+                {REACTIONS.map(emoji => {
+                  const count = (lightbox.reactions?.[emoji] || []).length;
+                  const myReacted = (lightbox.reactions?.[emoji] || []).includes(user?.uid || '');
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaction(lightbox, emoji)}
+                      className={cn(
+                        "flex items-center gap-1 px-3 py-1.5 rounded-full border text-sm transition-all",
+                        myReacted ? "bg-lime-400/10 border-lime-400/30 scale-110" : "bg-zinc-900 border-zinc-800 hover:border-zinc-600"
+                      )}
+                    >
+                      <span>{emoji}</span>
+                      {count > 0 && <span className="text-[10px] font-black text-zinc-400">{count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between mt-3">
                 <p className="text-[10px] text-zinc-500 font-bold uppercase">
                   {lightbox.userName} • {format(getPostDate(lightbox), 'd MMM yyyy, HH:mm', { locale: idLocale })}
                 </p>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, CalendarDays } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -16,7 +18,9 @@ export default function Navbar() {
       </Link>
       
       {user && (
-        <div className="flex items-center gap-4 text-sm font-medium">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <ThemeToggle />
+          <NotificationBell />
           <div className="flex items-center gap-3 md:pl-4 md:border-l border-zinc-800">
             <div className="text-right hidden sm:block">
               <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">User</p>

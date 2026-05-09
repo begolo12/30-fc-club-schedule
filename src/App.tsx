@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
 import BottomNavbar from './components/BottomNavbar';
 import Sidebar from './components/Sidebar';
@@ -122,6 +123,7 @@ function showExitToast() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ThemeProvider>
       <AuthProvider>
         <AndroidBackButtonHandler />
         <Routes>
@@ -139,6 +141,7 @@ export default function App() {
           <Route path="/schedule/:id" element={<PrivateRoute><Layout><ScheduleDetail /></Layout></PrivateRoute>} />
         </Routes>
       </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
