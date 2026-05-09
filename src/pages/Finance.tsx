@@ -142,7 +142,7 @@ export default function Finance() {
   const [financeTab, setFinanceTab] = useState<'kas' | 'piutang' | 'riwayat' | 'tagihan'>('kas');
   const [myPayments, setMyPayments] = useState<{matchId: string; matchTitle: string; status: string; timestamp: number}[]>([]);
   const [piutang, setPiutang] = useState<{name: string; count: number; total: number}[]>([]);
-  const { user } = useAuth();
+  const { user, nickname } = useAuth();
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'club_info'), (snap) => {

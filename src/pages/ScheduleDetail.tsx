@@ -594,7 +594,6 @@ export default function ScheduleDetail() {
           >
             <Share2 className="w-4 h-4" /> Download Banner
           </button>
-          </button>
 
           {/* Join Actions */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl sticky bottom-20 md:static z-20">

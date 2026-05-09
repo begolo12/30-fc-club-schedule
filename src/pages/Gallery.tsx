@@ -236,7 +236,7 @@ export default function Gallery() {
         </div>
       ) : (
         <div className="space-y-3">
-          {Object.entries(groupedByMonth).map(([monthKey, monthPosts]) => {
+          {(Object.entries(groupedByMonth) as [string, GalleryPost[]][]).map(([monthKey, monthPosts]) => {
             const isExpanded = expandedMonths.has(monthKey);
             const monthDate = new Date(monthKey + '-01');
             return (
@@ -330,8 +330,8 @@ export default function Gallery() {
               {/* Reactions */}
               <div className="flex items-center gap-2 mt-3">
                 {REACTIONS.map(emoji => {
-                  const count = (lightbox.reactions?.[emoji] || []).length;
-                  const myReacted = (lightbox.reactions?.[emoji] || []).includes(user?.uid || '');
+                  const count = ((lightbox.reactions?.[emoji] as string[]) || []).length;
+                  const myReacted = ((lightbox.reactions?.[emoji] as string[]) || []).includes(user?.uid || '');
                   return (
                     <button
                       key={emoji}
