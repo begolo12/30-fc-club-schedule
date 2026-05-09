@@ -157,7 +157,7 @@ export default function Dashboard() {
   const nextMatch = upcomingMatches[0];
 
   return (
-    <div className="flex-1 flex flex-col gap-8 pb-20">
+    <div className="flex-1 flex flex-col gap-8 pb-24 md:pb-12">
       {/* Payment Reminder */}
       {unpaidMatches.length > 0 && (
         <div className="mx-1 bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 animate-in slide-in-from-top-4 duration-500">

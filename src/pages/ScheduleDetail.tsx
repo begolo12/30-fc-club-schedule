@@ -304,7 +304,7 @@ export default function ScheduleDetail() {
   );
 
   return (
-    <div className="flex-1 flex flex-col gap-6">
+    <div className="flex-1 flex flex-col gap-6 pb-24 md:pb-12">
       <div className="flex items-center justify-between px-1">
         <button onClick={() => navigate(-1)} className="p-2 bg-zinc-900 border border-zinc-800 rounded-full hover:bg-zinc-800 text-zinc-400"><ArrowLeft className="w-5 h-5" /></button>
         <div className="flex gap-2">
@@ -399,33 +399,33 @@ export default function ScheduleDetail() {
           )}
 
           {/* Join Actions */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-4 md:gap-6 shadow-xl sticky bottom-4 md:static z-20">
-            <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-lime-400/10 rounded-2xl flex items-center justify-center text-lime-400"><Users className="w-6 h-6 md:w-7 md:h-7" /></div>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl sticky bottom-20 md:static z-20">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-lime-400/10 rounded-xl flex items-center justify-center text-lime-400 shrink-0"><Users className="w-5 h-5" /></div>
               <div className="min-w-0">
-                <h4 className="text-lg md:text-xl font-black italic uppercase tracking-tighter text-zinc-100 line-clamp-1">Ayo Join Laga!</h4>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
+                <h4 className="text-sm font-black italic uppercase tracking-tighter text-zinc-100">Ayo Join Laga!</h4>
+                <p className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
-              <button onClick={() => setIsFormationModalOpen(true)} className="flex-1 md:flex-none bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Formasi</button>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setIsFormationModalOpen(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Formasi</button>
               {hasJoined && myRecord?.paymentStatus === 'unpaid' && (
-                <button onClick={() => setShowQris(true)} className="flex-1 md:flex-none bg-lime-400 hover:bg-lime-300 text-zinc-950 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20">Bayar Iuran</button>
+                <button onClick={() => setShowQris(true)} className="bg-lime-400 hover:bg-lime-300 text-zinc-950 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20">Bayar Iuran</button>
               )}
               {hasJoined && myRecord?.paymentStatus === 'pending_qris' && (
-                <span className="flex-1 md:flex-none bg-orange-400/10 border border-orange-400/30 text-orange-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center">Menunggu Verifikasi</span>
+                <span className="bg-orange-400/10 border border-orange-400/30 text-orange-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest">Pending</span>
               )}
               {hasJoined && (myRecord?.paymentStatus === 'paid_qris' || myRecord?.paymentStatus === 'paid_cash') && (
-                <span className="flex-1 md:flex-none bg-lime-400/10 border border-lime-400/30 text-lime-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest text-center">Lunas ✓</span>
+                <span className="bg-lime-400/10 border border-lime-400/30 text-lime-400 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest">Lunas ✓</span>
               )}
               {hasJoined ? (
                 myRecord?.paymentStatus === 'unpaid' ? (
-                  <button onClick={handleLeave} className="flex-1 md:flex-none bg-red-500 hover:bg-red-400 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Keluar</button>
+                  <button onClick={handleLeave} className="bg-red-500 hover:bg-red-400 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Keluar</button>
                 ) : (
-                  <button onClick={() => setIsJoinModalOpen(true)} className="flex-1 md:flex-none bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Ganti Posisi</button>
+                  <button onClick={() => setIsJoinModalOpen(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Ganti Posisi</button>
                 )
               ) : (
-                <button onClick={() => setIsJoinModalOpen(true)} className="flex-1 md:flex-none bg-lime-400 hover:bg-lime-300 text-zinc-950 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
+                <button onClick={() => setIsJoinModalOpen(true)} className="bg-lime-400 hover:bg-lime-300 text-zinc-950 px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
               )}
             </div>
           </div>

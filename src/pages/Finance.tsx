@@ -339,7 +339,7 @@ export default function Finance() {
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-6">
+    <div className="flex-1 flex flex-col gap-6 pb-24 md:pb-12">
       <header className="flex flex-col gap-4">
         <div className="px-1 flex justify-between items-start">
           <div>
@@ -349,9 +349,9 @@ export default function Finance() {
           {!isAdmin && (
             <button 
               onClick={() => setIsPaymentModalOpen(true)}
-              className="bg-lime-400 text-zinc-950 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20"
+              className="bg-lime-400 text-zinc-950 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-lime-400/20 animate-pulse"
             >
-              Bayar Iuran
+              💰 Bayar
             </button>
           )}
         </div>
