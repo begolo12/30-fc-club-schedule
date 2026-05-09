@@ -49,32 +49,43 @@ export default function Gallery() {
     setShowUpload(true);
   };
 
+  const compressImage = (file: File, maxSize: number = 800, quality: number = 0.6): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height && width > maxSize) { height = (height * maxSize) / width; width = maxSize; }
+        else if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleUpload = async () => {
     if (!user || !selectedFile) return;
     setUploading(true);
     try {
-      // Convert to base64 data URL for storage in Firestore (simple approach without Firebase Storage)
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const dataUrl = reader.result as string;
-        await addDoc(collection(db, 'gallery'), {
-          imageUrl: dataUrl,
-          caption: caption.trim(),
-          userName: nickname || user.displayName || 'User',
-          userId: user.uid,
-          createdAt: serverTimestamp(),
-        });
-        setShowUpload(false);
-        setCaption('');
-        setPreviewUrl(null);
-        setSelectedFile(null);
-        setUploading(false);
-      };
-      reader.readAsDataURL(selectedFile);
+      const compressed = await compressImage(selectedFile);
+      await addDoc(collection(db, 'gallery'), {
+        imageUrl: compressed,
+        caption: caption.trim(),
+        userName: nickname || user.displayName || 'User',
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      });
+      setShowUpload(false);
+      setCaption('');
+      setPreviewUrl(null);
+      setSelectedFile(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'gallery');
-      setUploading(false);
     }
+    setUploading(false);
   };
 
   // Auto-highlight: latest 5 posts
