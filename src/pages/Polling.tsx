@@ -72,6 +72,7 @@ export default function Polling() {
   };
 
   const handleClosePoll = async (pollId: string) => {
+    if (!window.confirm('Yakin ingin menutup polling ini? Tidak bisa dibuka lagi.')) return;
     try {
       await updateDoc(doc(db, 'polls', pollId), { closed: true });
     } catch (err) {

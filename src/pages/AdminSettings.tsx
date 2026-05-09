@@ -104,6 +104,7 @@ export default function AdminSettings() {
   };
 
   const handleGenerateSchedule = async (rs: RecurringSchedule) => {
+    if (!window.confirm(`Buat jadwal "${rs.title}" untuk minggu depan?`)) return;
     // Find next occurrence of the day
     const now = new Date();
     const daysUntil = (rs.dayOfWeek - now.getDay() + 7) % 7 || 7;
@@ -131,6 +132,7 @@ export default function AdminSettings() {
   };
 
   const handleDeleteRutin = async (id: string) => {
+    if (!window.confirm('Yakin ingin hapus template ini?')) return;
     try {
       const { deleteDoc } = await import('firebase/firestore');
       await deleteDoc(doc(db, 'recurringSchedules', id));

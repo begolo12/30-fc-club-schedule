@@ -313,13 +313,20 @@ export default function Finance() {
 
   const handleReject = async (p: any) => {
     if (!isAdmin) return;
-    try {
-      await setDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId), {
-        paymentStatus: 'unpaid'
-      }, { merge: true });
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'rejection');
-    }
+    setConfirmDialog({
+      title: 'Tolak Pembayaran',
+      message: `Yakin ingin menolak pembayaran ${p.name}?`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await setDoc(doc(db, 'schedules', p.matchId, 'participants', p.userId), {
+            paymentStatus: 'unpaid'
+          }, { merge: true });
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, 'rejection');
+        }
+      }
+    });
   };
 
   const handleAddExpense = async () => {
