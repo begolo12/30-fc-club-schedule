@@ -405,30 +405,36 @@ export default function Finance() {
         </div>
 
         <div className="bg-zinc-950 border border-zinc-900 rounded-3xl p-5 flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Saldo Awal</span>
-            {isAdmin && (
-              <button 
-                onClick={() => setIsEditingInitial(!isEditingInitial)}
-                className="text-zinc-600 hover:text-lime-400"
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Saldo Awal</span>
           
           {isEditingInitial ? (
-            <div className="flex gap-2">
-              <input 
-                type="number"
-                value={newInitial}
-                onChange={(e) => setNewInitial(e.target.value)}
-                className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 font-bold outline-none"
-              />
-              <button onClick={handleUpdateInitial} className="bg-lime-400 text-zinc-950 p-2 rounded-lg"><Save className="w-4 h-4" /></button>
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-600 font-black">Rp</span>
+                <input 
+                  type="number"
+                  value={newInitial}
+                  onChange={(e) => setNewInitial(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-100 font-black outline-none focus:border-lime-400/50"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setIsEditingInitial(false)} className="flex-1 bg-zinc-800 text-zinc-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest">Batal</button>
+                <button onClick={handleUpdateInitial} className="flex-1 bg-lime-400 text-zinc-950 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest">Simpan</button>
+              </div>
             </div>
           ) : (
-            <h4 className="text-xl font-black italic text-zinc-400">Rp {initialBalance.toLocaleString('id-ID')}</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xl font-black italic text-zinc-400">Rp {initialBalance.toLocaleString('id-ID')}</h4>
+              {isAdmin && (
+                <button 
+                  onClick={() => setIsEditingInitial(true)}
+                  className="bg-zinc-800 text-zinc-400 px-3 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:text-lime-400 hover:border-lime-400/50 transition-all"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
