@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -42,6 +42,19 @@ export default function Announcements() {
         author: user?.displayName || 'Admin',
         createdAt: serverTimestamp(),
       });
+      // Broadcast to all users' notification inbox
+      if (audience === 'all') {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        usersSnap.forEach(u => {
+          addDoc(collection(db, 'users', u.id, 'notifications'), {
+            title: `📢 ${title.trim()}`,
+            message: message.trim(),
+            type: 'announcement',
+            read: false,
+            createdAt: Date.now(),
+          }).catch(() => {});
+        });
+      }
       setTitle('');
       setMessage('');
       setAudience('all');

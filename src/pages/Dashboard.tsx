@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, where, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone, Plus } from 'lucide-react';
@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [playerSearch, setPlayerSearch] = useState('');
   const [countdown, setCountdown] = useState('');
+  const [myMonthlyCount, setMyMonthlyCount] = useState(0);
+  const [lastMonthRecap, setLastMonthRecap] = useState<{matches: number; income: number; expense: number} | null>(null);
 
   // Countdown timer
   useEffect(() => {
@@ -182,6 +184,46 @@ export default function Dashboard() {
     checkUnpaid();
   }, [user, upcomingMatches]);
 
+  // Auto-close matches 2 hours past schedule time
+  useEffect(() => {
+    if (!isAdmin || upcomingMatches.length === 0) return;
+    const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+    upcomingMatches.forEach(match => {
+      if (match.timestamp < twoHoursAgo && match.status === 'upcoming') {
+        updateDoc(doc(db, 'schedules', match.id), { status: 'completed', completedAt: Date.now() }).catch(() => {});
+      }
+    });
+  }, [isAdmin, upcomingMatches]);
+
+  // Personal stats: how many matches this month
+  useEffect(() => {
+    if (!user || completedMatches.length === 0) return;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const checkMyStats = async () => {
+      let count = 0;
+      for (const match of completedMatches) {
+        if (match.timestamp >= monthStart) {
+          const pDoc = await getDoc(doc(db, 'schedules', match.id, 'participants', user.uid));
+          if (pDoc.exists()) count++;
+        }
+      }
+      setMyMonthlyCount(count);
+    };
+    checkMyStats();
+  }, [user, completedMatches]);
+
+  // Monthly recap (last month)
+  useEffect(() => {
+    const now = new Date();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).getTime();
+    const matchCount = completedMatches.filter(m => m.timestamp >= lastMonthStart && m.timestamp <= lastMonthEnd).length;
+    if (matchCount > 0) {
+      setLastMonthRecap({ matches: matchCount, income: monthIncome, expense: monthExpense });
+    }
+  }, [completedMatches, monthIncome, monthExpense]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -221,21 +263,27 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Payment Reminder */}
+      {/* Smart Payment Reminder - aggressive for H-1 */}
       {unpaidMatches.length > 0 && (
         <div className="mx-1 space-y-2 animate-in slide-in-from-top-4 duration-500">
-          {unpaidMatches.map(m => (
-            <Link key={m.id} to={`/schedule/${m.id}`} className="flex items-center gap-3 bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 hover:border-orange-400/40 transition-all">
-              <div className="w-10 h-10 bg-orange-400/20 rounded-xl flex items-center justify-center text-orange-400 shrink-0">
-                <Wallet className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">Belum Bayar</h4>
-                <p className="text-xs text-zinc-300 font-bold truncate">{m.title}</p>
-              </div>
-              <span className="shrink-0 bg-orange-400 text-zinc-950 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Bayar</span>
-            </Link>
-          ))}
+          {unpaidMatches.map(m => {
+            const match = upcomingMatches.find(um => um.id === m.id);
+            const isH1 = match && (match.timestamp - Date.now()) < 86400000;
+            return (
+              <Link key={m.id} to={`/schedule/${m.id}`} className={`flex items-center gap-3 border rounded-2xl p-4 transition-all ${isH1 ? 'bg-red-500/10 border-red-500/30 animate-pulse' : 'bg-orange-400/10 border-orange-400/20 hover:border-orange-400/40'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isH1 ? 'bg-red-500/20 text-red-400' : 'bg-orange-400/20 text-orange-400'}`}>
+                  {isH1 ? '🚨' : <Wallet className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className={`text-[10px] font-black uppercase tracking-widest italic ${isH1 ? 'text-red-400' : 'text-orange-400'}`}>
+                    {isH1 ? '⚠️ Besok Main — Belum Bayar!' : 'Belum Bayar'}
+                  </h4>
+                  <p className="text-xs text-zinc-300 font-bold truncate">{m.title}</p>
+                </div>
+                <span className={`shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest ${isH1 ? 'bg-red-500 text-white' : 'bg-orange-400 text-zinc-950'}`}>Bayar</span>
+              </Link>
+            );
+          })}
         </div>
       )}
 
@@ -369,6 +417,28 @@ export default function Dashboard() {
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">User</p>
           <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
         </button>
+      </div>
+
+      {/* Personal Stats + Monthly Recap */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {myMonthlyCount > 0 && (
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-lime-400/10 rounded-xl flex items-center justify-center text-lg">🔥</div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Bulan Ini</p>
+              <p className="text-sm font-black italic text-lime-400">{myMonthlyCount}x ikut main</p>
+            </div>
+          </div>
+        )}
+        {lastMonthRecap && lastMonthRecap.matches > 0 && (
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-400/10 rounded-xl flex items-center justify-center text-lg">📊</div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Recap Bulan Lalu</p>
+              <p className="text-xs font-bold text-zinc-300">{lastMonthRecap.matches} match selesai</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Finance Chart */}

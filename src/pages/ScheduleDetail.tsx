@@ -44,6 +44,7 @@ interface Participant {
   status: 'starting' | 'substitute';
   joinedAt: number | Timestamp;
   paymentStatus?: 'unpaid' | 'pending_qris' | 'paid_qris' | 'paid_cash';
+  attendance?: 'hadir' | 'mungkin' | 'tidak';
 }
 
 interface Message {
@@ -243,6 +244,15 @@ export default function ScheduleDetail() {
       navigate(`/schedule/${newDoc.id}`);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'duplicate-schedule');
+    }
+  };
+
+  const handleAttendance = async (status: 'hadir' | 'mungkin' | 'tidak') => {
+    if (!user || !id) return;
+    try {
+      await setDoc(doc(db, 'schedules', id, 'participants', user.uid), { attendance: status }, { merge: true });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'attendance');
     }
   };
 
@@ -455,6 +465,27 @@ export default function ScheduleDetail() {
                 <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
               </div>
             </div>
+            {/* Attendance RSVP */}
+            {hasJoined && (
+              <div className="flex gap-2 mb-4">
+                {(['hadir', 'mungkin', 'tidak'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => handleAttendance(s)}
+                    className={cn(
+                      "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all",
+                      myRecord?.attendance === s
+                        ? s === 'hadir' ? 'bg-lime-400/10 border-lime-400/30 text-lime-400'
+                          : s === 'mungkin' ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
+                          : 'bg-red-400/10 border-red-400/30 text-red-400'
+                        : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-zinc-600'
+                    )}
+                  >
+                    {s === 'hadir' ? '✓ Hadir' : s === 'mungkin' ? '🤔 Mungkin' : '✗ Tidak'}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setIsFormationModalOpen(true)} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">Formasi</button>
               {hasJoined && myRecord?.paymentStatus === 'unpaid' && (
