@@ -48,7 +48,7 @@ export default function Inventory() {
           const userData = userDoc.data() as { nickname?: string; displayName?: string };
           return {
             id: userDoc.id,
-            name: userData.nickname || userData.displayName || 'Pemain'
+            name: userData.nickname || userData.displayName || 'User'
           };
         });
         setUsers(data);

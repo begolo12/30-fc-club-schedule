@@ -143,8 +143,8 @@ export default function ScheduleDetail() {
     try {
       await setDoc(doc(db, 'schedules', id, 'participants', user.uid), {
         userId: user.uid,
-        name: user.displayName || 'Pemain Anonim',
-        nickname: nickname || user.displayName?.substring(0, 6) || 'Pemain',
+        name: user.displayName || 'User',
+        nickname: nickname || user.displayName?.substring(0, 6) || 'User',
         role: selection.position,
         team: selection.team,
         status: selection.status,
@@ -250,8 +250,8 @@ export default function ScheduleDetail() {
     try {
       await setDoc(doc(collection(db, 'schedules', id, 'messages')), {
         userId: user.uid,
-        name: user.displayName || 'Pemain',
-        nickname: nickname || user.displayName?.substring(0, 6) || 'Pemain',
+        name: user.displayName || 'User',
+        nickname: nickname || user.displayName?.substring(0, 6) || 'User',
         text: chatText.trim(),
         timestamp: serverTimestamp()
       });
@@ -334,7 +334,7 @@ export default function ScheduleDetail() {
                 <div className="flex flex-wrap gap-4 items-center mt-5 pt-5 border-t border-zinc-800/50 text-[11px]">
                   <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{schedule.location}</span></div>
                   <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{format(schedule.timestamp, 'HH:mm')} WIB</span></div>
-                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{participants.length} Pemain</span></div>
+                  <div className="flex items-center gap-2"><Users className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{participants.length} User</span></div>
                 </div>
               </div>
             </div>

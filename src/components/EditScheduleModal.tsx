@@ -73,7 +73,7 @@ export default function EditScheduleModal({ isOpen, onClose, schedule }: Props) 
         const data: { id: string; name: string }[] = [];
         snap.forEach((d) => {
           const userData = d.data() as any;
-          data.push({ id: d.id, name: userData.nickname || userData.displayName || 'Pemain' });
+          data.push({ id: d.id, name: userData.nickname || userData.displayName || 'User' });
         });
         setUsers(data);
       } catch (err) {

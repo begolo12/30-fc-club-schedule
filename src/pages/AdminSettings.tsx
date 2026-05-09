@@ -5,7 +5,7 @@ import { Camera, Save, CheckCircle2, QrCode, Users, Shield, Briefcase, UserCircl
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 
-type Role = 'Ketua Club' | 'Kasir' | 'Sekretaris' | 'Admin' | 'Pemain';
+type Role = 'Ketua Club' | 'Kasir' | 'Sekretaris' | 'Admin' | 'User';
 
 interface ClubUser {
   uid: string;
@@ -151,7 +151,7 @@ export default function AdminSettings() {
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const roles: Role[] = ['Ketua Club', 'Kasir', 'Sekretaris', 'Admin', 'Pemain'];
+  const roles: Role[] = ['Ketua Club', 'Kasir', 'Sekretaris', 'Admin', 'User'];
 
   const getRoleIcon = (role?: Role) => {
     switch(role) {
@@ -386,12 +386,12 @@ export default function AdminSettings() {
                       "bg-zinc-950 border-zinc-800 text-zinc-600"
                     )}>
                       {getRoleIcon(u.role)}
-                      {u.role || 'Pemain'}
+                      {u.role || 'User'}
                     </div>
                   </div>
 
                   <select 
-                    value={u.role || 'Pemain'}
+                    value={u.role || 'User'}
                     onChange={(e) => updateUserRole(u.uid, e.target.value as Role)}
                     className="flex-1 max-w-[140px] bg-zinc-950 border border-zinc-800 rounded-lg py-2 px-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 focus:border-lime-400 outline-none transition-all shadow-inner italic"
                   >

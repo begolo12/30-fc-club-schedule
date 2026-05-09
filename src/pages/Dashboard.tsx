@@ -207,7 +207,7 @@ export default function Dashboard() {
       <header className="flex justify-between items-start px-1 pt-2">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-zinc-100">
-            Halo, <span className="text-lime-400">{nickname || user?.displayName?.split(' ')[0] || 'Pemain'}</span>
+            Halo, <span className="text-lime-400">{nickname || user?.displayName?.split(' ')[0] || 'User'}</span>
           </h2>
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Ikhtisar Pertandingan & Statistik</p>
         </div>
@@ -232,7 +232,7 @@ export default function Dashboard() {
           <div className="relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-zinc-800 bg-zinc-900 shadow-2xl">
             <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-lime-400">Daftar Pemain</h3>
+                <h3 className="text-lg font-black uppercase tracking-tight text-lime-400">Daftar User</h3>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Lihat anggota yang sudah terdaftar</p>
               </div>
               <button onClick={() => setIsPlayersOpen(false)} className="rounded-full p-2 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-200">
@@ -249,7 +249,7 @@ export default function Dashboard() {
             </div>
             <div className="max-h-[60vh] overflow-y-auto">
               {players.length === 0 ? (
-                <div className="px-5 py-8 text-center text-sm font-bold uppercase tracking-widest text-zinc-500">Belum ada pemain</div>
+                <div className="px-5 py-8 text-center text-sm font-bold uppercase tracking-widest text-zinc-500">Belum ada user</div>
               ) : (
                 players
                   .filter((p) => {
@@ -267,8 +267,8 @@ export default function Dashboard() {
                         {(player.nickname || player.displayName || 'P')[0]}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'Pemain'}</p>
-                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'Pemain'}</p>
+                        <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'User'}</p>
+                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'User'}</p>
                       </div>
                     </div>
                   ))

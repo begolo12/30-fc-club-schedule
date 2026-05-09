@@ -38,22 +38,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userRef = doc(db, 'users', currentUser.uid);
             const userSnap = await getDoc(userRef);
             if (!userSnap.exists()) {
-              const initialNickname = (currentUser.displayName || 'Pemain').substring(0, 6);
+              const initialNickname = (currentUser.displayName || 'User').substring(0, 6);
               await setDoc(userRef, {
                 displayName: currentUser.displayName || 'Unknown',
                 nickname: initialNickname,
                 email: currentUser.email || '',
-                role: isDefaultAdmin ? 'Admin' : 'Pemain',
+                role: isDefaultAdmin ? 'Admin' : 'User',
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
               });
               setNickname(initialNickname);
-              setRole(isDefaultAdmin ? 'Admin' : 'Pemain');
+              setRole(isDefaultAdmin ? 'Admin' : 'User');
               setIsAdmin(isDefaultAdmin);
             } else {
               const userData = userSnap.data();
-              setNickname(userData.nickname || userData.displayName?.substring(0, 6) || 'Pemain');
-              setRole(userData.role || (isDefaultAdmin ? 'Admin' : 'Pemain'));
+              setNickname(userData.nickname || userData.displayName?.substring(0, 6) || 'User');
+              setRole(userData.role || (isDefaultAdmin ? 'Admin' : 'User'));
               setIsAdmin(isDefaultAdmin || userData.role === 'Admin' || userData.role === 'Ketua Club');
             }
           } catch (error: any) {
