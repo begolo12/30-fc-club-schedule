@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Camera, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Heart } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface GalleryPost {
@@ -16,7 +15,6 @@ interface GalleryPost {
   userName: string;
   userId: string;
   createdAt: Timestamp | number;
-  matchTitle?: string;
 }
 
 export default function Gallery() {
@@ -30,16 +28,25 @@ export default function Gallery() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [lightbox, setLightbox] = useState<GalleryPost | null>(null);
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'), limit(50));
+    const q = query(collection(db, 'gallery'), orderBy('createdAt', 'desc'), limit(100));
     const unsub = onSnapshot(q, (snap) => {
       setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() } as GalleryPost)));
       setLoading(false);
     });
     return unsub;
   }, []);
+
+  // Auto-expand current month
+  useEffect(() => {
+    if (posts.length > 0) {
+      const currentMonth = format(new Date(), 'yyyy-MM');
+      setExpandedMonths(new Set([currentMonth]));
+    }
+  }, [posts.length]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,15 +95,36 @@ export default function Gallery() {
     setUploading(false);
   };
 
-  // Auto-highlight: latest 5 posts
+  // Highlights: latest 5
   const highlights = posts.slice(0, 5);
 
-  // Auto-advance highlight
+  // Auto-advance with Ken Burns timing
   useEffect(() => {
     if (highlights.length <= 1) return;
-    const timer = setInterval(() => setHighlightIndex(i => (i + 1) % highlights.length), 4000);
+    const timer = setInterval(() => setHighlightIndex(i => (i + 1) % highlights.length), 5000);
     return () => clearInterval(timer);
   }, [highlights.length]);
+
+  // Group posts by month
+  const groupedByMonth = posts.reduce<Record<string, GalleryPost[]>>((acc, post) => {
+    const ts = post.createdAt instanceof Timestamp ? post.createdAt.toDate() : new Date(post.createdAt);
+    const key = format(ts, 'yyyy-MM');
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(post);
+    return acc;
+  }, {});
+
+  const toggleMonth = (key: string) => {
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const getPostDate = (post: GalleryPost) => {
+    return post.createdAt instanceof Timestamp ? post.createdAt.toDate() : new Date(post.createdAt);
+  };
 
   return (
     <div className="flex-1 flex flex-col gap-6 pb-24 md:pb-12">
@@ -114,67 +142,115 @@ export default function Gallery() {
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
       </header>
 
-      {/* Highlights Carousel */}
+      {/* Highlights Carousel - Ken Burns Effect */}
       {highlights.length > 0 && (
         <div className="relative rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl aspect-[16/9] bg-zinc-950">
-          <div className="absolute inset-0">
-            <img
-              src={highlights[highlightIndex]?.imageUrl}
-              alt=""
-              className="w-full h-full object-cover transition-all duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/30 to-transparent" />
+          {highlights.map((h, i) => (
+            <div
+              key={h.id}
+              className={cn(
+                "absolute inset-0 transition-opacity duration-1000",
+                i === highlightIndex ? "opacity-100" : "opacity-0"
+              )}
+            >
+              <img
+                src={h.imageUrl}
+                alt=""
+                className={cn(
+                  "w-full h-full object-cover",
+                  i === highlightIndex && "animate-[kenburns_5s_ease-in-out_forwards]"
+                )}
+              />
+            </div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-zinc-950/10" />
+          
+          {/* Progress bar */}
+          <div className="absolute top-4 left-4 right-4 flex gap-1.5 z-10">
+            {highlights.map((_, i) => (
+              <div key={i} className="flex-1 h-0.5 rounded-full bg-zinc-700 overflow-hidden">
+                <div className={cn(
+                  "h-full bg-lime-400 rounded-full",
+                  i === highlightIndex && "animate-[progress_5s_linear_forwards]",
+                  i < highlightIndex && "w-full",
+                  i > highlightIndex && "w-0"
+                )} />
+              </div>
+            ))}
           </div>
+
           <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-lime-400" />
               <span className="text-[9px] font-black text-lime-400 uppercase tracking-widest">Highlights</span>
             </div>
             <p className="text-sm font-black text-zinc-100 italic line-clamp-1">{highlights[highlightIndex]?.caption || 'Momen Thirty FC'}</p>
-            <p className="text-[10px] text-zinc-400 font-bold mt-1">{highlights[highlightIndex]?.userName} • {highlights[highlightIndex]?.createdAt && format(highlights[highlightIndex].createdAt instanceof Timestamp ? highlights[highlightIndex].createdAt.toDate() : highlights[highlightIndex].createdAt, 'd MMM yyyy', { locale: idLocale })}</p>
+            <p className="text-[10px] text-zinc-400 font-bold mt-1">
+              {highlights[highlightIndex]?.userName} • {format(getPostDate(highlights[highlightIndex]), 'd MMM yyyy', { locale: idLocale })}
+            </p>
           </div>
-          {/* Dots */}
-          <div className="absolute bottom-5 right-5 flex gap-1.5 z-10">
-            {highlights.map((_, i) => (
-              <button key={i} onClick={() => setHighlightIndex(i)} className={cn("w-2 h-2 rounded-full transition-all", i === highlightIndex ? "bg-lime-400 w-5" : "bg-zinc-600")} />
-            ))}
-          </div>
-          {/* Nav arrows */}
-          {highlights.length > 1 && (
-            <>
-              <button onClick={() => setHighlightIndex(i => (i - 1 + highlights.length) % highlights.length)} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-zinc-950/60 rounded-full text-zinc-300 hover:text-lime-400 transition-all">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button onClick={() => setHighlightIndex(i => (i + 1) % highlights.length)} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-zinc-950/60 rounded-full text-zinc-300 hover:text-lime-400 transition-all">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </>
-          )}
+
+          {/* Tap zones */}
+          <button onClick={() => setHighlightIndex(i => (i - 1 + highlights.length) % highlights.length)} className="absolute left-0 top-0 bottom-0 w-1/3 z-10" />
+          <button onClick={() => setHighlightIndex(i => (i + 1) % highlights.length)} className="absolute right-0 top-0 bottom-0 w-1/3 z-10" />
         </div>
       )}
 
-      {/* Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        {loading ? (
-          <div className="col-span-full h-40 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-zinc-700 animate-pulse">Memuat...</div>
-        ) : posts.length === 0 ? (
-          <div className="col-span-full bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
-            <ImageIcon className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada foto</p>
-          </div>
-        ) : posts.map(post => (
-          <button
-            key={post.id}
-            onClick={() => setLightbox(post)}
-            className="aspect-square rounded-2xl overflow-hidden border border-zinc-800 hover:border-lime-400/50 transition-all group relative"
-          >
-            <img src={post.imageUrl} alt={post.caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-              <p className="text-[10px] font-bold text-zinc-200 line-clamp-2">{post.caption}</p>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* Monthly Groups */}
+      {loading ? (
+        <div className="h-40 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-zinc-700 animate-pulse">Memuat...</div>
+      ) : posts.length === 0 ? (
+        <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
+          <ImageIcon className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada foto — upload momen pertamamu!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {Object.entries(groupedByMonth).map(([monthKey, monthPosts]) => {
+            const isExpanded = expandedMonths.has(monthKey);
+            const monthDate = new Date(monthKey + '-01');
+            return (
+              <div key={monthKey} className="bg-zinc-900/30 border border-zinc-800/30 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => toggleMonth(monthKey)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-800/30 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-center">
+                      <span className="text-[10px] font-black text-lime-400">{monthPosts.length}</span>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-black text-zinc-100 uppercase">{format(monthDate, 'MMMM yyyy', { locale: idLocale })}</p>
+                      <p className="text-[10px] text-zinc-600 font-bold">{monthPosts.length} foto</p>
+                    </div>
+                  </div>
+                  <ChevronDown className={cn("w-4 h-4 text-zinc-500 transition-transform duration-200", isExpanded && "rotate-180")} />
+                </button>
+
+                {isExpanded && (
+                  <div className="px-3 pb-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {monthPosts.map(post => (
+                        <button
+                          key={post.id}
+                          onClick={() => setLightbox(post)}
+                          className="aspect-square rounded-xl overflow-hidden border border-zinc-800/50 hover:border-lime-400/50 transition-all group relative"
+                        >
+                          <img src={post.imageUrl} alt={post.caption} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                            <p className="text-[9px] font-bold text-zinc-200 line-clamp-1">{post.caption || post.userName}</p>
+                            <p className="text-[8px] text-zinc-400">{format(getPostDate(post), 'd MMM')}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Upload Modal */}
       {showUpload && (
@@ -222,12 +298,24 @@ export default function Gallery() {
             <div className="mt-4 px-2">
               {lightbox.caption && <p className="text-sm font-bold text-zinc-200">{lightbox.caption}</p>}
               <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">
-                {lightbox.userName} • {lightbox.createdAt && format(lightbox.createdAt instanceof Timestamp ? lightbox.createdAt.toDate() : lightbox.createdAt, 'd MMM yyyy, HH:mm', { locale: idLocale })}
+                {lightbox.userName} • {format(getPostDate(lightbox), 'd MMM yyyy, HH:mm', { locale: idLocale })}
               </p>
             </div>
           </div>
         </div>
       )}
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes kenburns {
+          0% { transform: scale(1) translate(0, 0); }
+          100% { transform: scale(1.1) translate(-1%, -1%); }
+        }
+        @keyframes progress {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
