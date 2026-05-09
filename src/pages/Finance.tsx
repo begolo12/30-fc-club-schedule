@@ -138,7 +138,7 @@ export default function Finance() {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
-  const [financeTab, setFinanceTab] = useState<'kas' | 'piutang' | 'riwayat'>('kas');
+  const [financeTab, setFinanceTab] = useState<'kas' | 'piutang' | 'riwayat' | 'tagihan'>('kas');
   const [myPayments, setMyPayments] = useState<{matchId: string; matchTitle: string; status: string; timestamp: number}[]>([]);
   const [piutang, setPiutang] = useState<{name: string; count: number; total: number}[]>([]);
   const { user } = useAuth();
@@ -299,7 +299,7 @@ export default function Finance() {
       await setDoc(doc(collection(db, 'finance')), {
         amount: 25000,
         type: 'income',
-        description: `Iuran ${finalStatus === 'paid_qris' ? 'QRIS' : 'Tunai'}: ${p.matchTitle}`,
+        description: `Iuran match "${p.matchTitle}" — bayar via ${finalStatus === 'paid_qris' ? 'QRIS' : 'Tunai'}`,
         userName: p.name,
         userId: p.userId,
         matchId: p.matchId,
@@ -344,7 +344,7 @@ export default function Finance() {
         <div className="px-1 flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-black italic uppercase tracking-tighter text-lime-400 leading-none">Keuangan Klub</h2>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">Arus Kas & Laporan Bulanan</p>
+            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1">{isAdmin ? 'Kelola Arus Kas & Laporan' : 'Transparansi Keuangan Klub'}</p>
           </div>
           {!isAdmin && (
             <button 
@@ -384,9 +384,14 @@ export default function Finance() {
 
       {/* Tab Bar */}
       <div className="flex bg-zinc-900 border border-zinc-800 rounded-2xl p-1 mx-1">
-        <button onClick={() => setFinanceTab('kas')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'kas' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Kas</button>
-        <button onClick={() => setFinanceTab('piutang')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'piutang' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Piutang</button>
-        <button onClick={() => setFinanceTab('riwayat')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'riwayat' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Riwayat</button>
+        {isAdmin ? (<>
+          <button onClick={() => setFinanceTab('kas')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'kas' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Arus Kas</button>
+          <button onClick={() => setFinanceTab('piutang')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'piutang' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Belum Lunas</button>
+          <button onClick={() => setFinanceTab('riwayat')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'riwayat' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Riwayat</button>
+        </>) : (<>
+          <button onClick={() => setFinanceTab('kas')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'kas' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Arus Kas</button>
+          <button onClick={() => setFinanceTab('tagihan')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${financeTab === 'tagihan' ? 'bg-lime-400 text-zinc-950 shadow-lg' : 'text-zinc-500'}`}>Tagihan Saya</button>
+        </>)}
       </div>
 
       {financeTab === 'kas' && (<>
@@ -524,7 +529,7 @@ export default function Finance() {
       {/* Transactions List */}
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
-          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Transaksi</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Catatan Pemasukan & Pengeluaran</h4>
           <span className="text-[10px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
             {transactions.length} DATA
           </span>
@@ -565,18 +570,18 @@ export default function Finance() {
       </div>
       </>)}
 
-      {/* Piutang Tab */}
+      {/* Belum Lunas Tab (Admin) */}
       {financeTab === 'piutang' && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Piutang Iuran</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Iuran Belum Lunas</h4>
             <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">
               Total: Rp {piutang.reduce((a, p) => a + p.total, 0).toLocaleString('id-ID')}
             </span>
           </div>
           {piutang.length === 0 ? (
             <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Tidak ada piutang 🎉</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Semua iuran sudah lunas 🎉</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -588,7 +593,7 @@ export default function Finance() {
                     </div>
                     <div>
                       <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight">{p.name}</h5>
-                      <span className="text-[10px] text-zinc-600 font-bold uppercase">{p.count} match belum bayar</span>
+                      <span className="text-[10px] text-zinc-600 font-bold uppercase">{p.count} match belum lunas</span>
                     </div>
                   </div>
                   <span className="text-xs font-black italic text-red-400">Rp {p.total.toLocaleString('id-ID')}</span>
@@ -599,11 +604,11 @@ export default function Finance() {
         </div>
       )}
 
-      {/* Riwayat Tab */}
+      {/* Riwayat Tab (Admin) */}
       {financeTab === 'riwayat' && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Bayar Saya</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Pembayaran</h4>
             <span className="text-[10px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
               {myPayments.filter(p => p.status === 'paid_qris' || p.status === 'paid_cash').length}/{myPayments.length} Lunas
             </span>
@@ -627,10 +632,82 @@ export default function Finance() {
                       ? 'text-orange-400 bg-orange-400/10 border-orange-400/20'
                       : 'text-red-400 bg-red-400/10 border-red-400/20'
                   }`}>
-                    {p.status === 'paid_qris' || p.status === 'paid_cash' ? 'Lunas' : p.status.includes('pending') ? 'Pending' : 'Belum Bayar'}
+                    {p.status === 'paid_qris' || p.status === 'paid_cash' ? '✓ Lunas' : p.status.includes('pending') ? '⏳ Menunggu' : '✗ Belum Bayar'}
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tagihan Saya Tab (User) */}
+      {financeTab === 'tagihan' && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">Tagihan Belum Lunas</h4>
+            <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
+              {myPayments.filter(p => p.status === 'unpaid' || p.status.includes('pending')).length} tagihan
+            </span>
+          </div>
+
+          {/* Unpaid */}
+          {myPayments.filter(p => p.status === 'unpaid').length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-red-400 px-1">Perlu Dibayar</p>
+              {myPayments.filter(p => p.status === 'unpaid').map(p => (
+                <div key={p.matchId} className="bg-zinc-900/40 border border-red-400/20 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{p.matchTitle}</h5>
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border text-red-400 bg-red-400/10 border-red-400/20">
+                    Belum Bayar
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pending */}
+          {myPayments.filter(p => p.status.includes('pending')).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-orange-400 px-1">Menunggu Konfirmasi Admin</p>
+              {myPayments.filter(p => p.status.includes('pending')).map(p => (
+                <div key={p.matchId} className="bg-zinc-900/40 border border-orange-400/20 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{p.matchTitle}</h5>
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border text-orange-400 bg-orange-400/10 border-orange-400/20">
+                    ⏳ Menunggu
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Already paid */}
+          {myPayments.filter(p => p.status === 'paid_qris' || p.status === 'paid_cash').length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-lime-400/60 px-1">Sudah Lunas</p>
+              {myPayments.filter(p => p.status === 'paid_qris' || p.status === 'paid_cash').map(p => (
+                <div key={p.matchId} className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-4 flex items-center justify-between opacity-60">
+                  <div>
+                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{p.matchTitle}</h5>
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border text-lime-400 bg-lime-400/10 border-lime-400/20">
+                    ✓ Lunas
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {myPayments.length === 0 && (
+            <div className="bg-zinc-900/40 border border-zinc-800/50 border-dashed rounded-3xl p-10 text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada tagihan</p>
             </div>
           )}
         </div>

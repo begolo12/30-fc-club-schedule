@@ -296,7 +296,7 @@ export default function Dashboard() {
           className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 transition-all"
         >
           <Users className="w-5 h-5 text-orange-400 mb-2 opacity-50" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pemain</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">User</p>
           <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
         </button>
       </div>
