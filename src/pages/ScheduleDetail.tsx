@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { format, isBefore, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Calendar, MapPin, Users, Send, ArrowLeft, Trash2, Edit2, QrCode, CheckCircle2, Banknote, Clock, Shield } from 'lucide-react';
+import { Calendar, MapPin, Users, Send, ArrowLeft, Trash2, Edit2, QrCode, CheckCircle2, Banknote, Clock, Shield, UserMinus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
@@ -169,6 +169,20 @@ export default function ScheduleDetail() {
     });
   };
 
+  const handleKick = async (p: Participant) => {
+    if (!isAdmin || !id) return;
+    setConfirmDialog({
+      title: 'Keluarkan User?',
+      message: `Yakin ingin mengeluarkan ${p.nickname || p.name} dari pertandingan ini?`,
+      variant: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try { await deleteDoc(doc(db, 'schedules', id, 'participants', p.userId)); }
+        catch (err) { handleFirestoreError(err, OperationType.DELETE, 'kick-participant'); }
+      }
+    });
+  };
+
   const handleConfirmDelete = async (reason: string) => {
     if (!isAdmin || !id) return;
     try {
@@ -287,6 +301,11 @@ export default function ScheduleDetail() {
               {p.paymentStatus === 'pending_qris' && <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
               {isAdmin && p.paymentStatus !== 'paid_qris' && p.paymentStatus !== 'paid_cash' && (
                 <button onClick={() => handleVerifyPayment(p.userId, 'paid_cash')} className="text-[10px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
+              )}
+              {isAdmin && p.userId !== user?.uid && (
+                <button onClick={() => handleKick(p)} className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100" title="Keluarkan">
+                  <UserMinus className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
           </div>
