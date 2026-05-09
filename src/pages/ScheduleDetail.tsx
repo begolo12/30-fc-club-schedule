@@ -458,84 +458,106 @@ export default function ScheduleDetail() {
 
           {/* Share Banner */}
           <button
-            onClick={async () => {
+            onClick={() => {
               const w = 1080, h = 1920;
               const canvas = document.createElement('canvas');
               canvas.width = w; canvas.height = h;
               const ctx = canvas.getContext('2d')!;
               
-              // Background gradient
-              const grad = ctx.createLinearGradient(0, 0, 0, h);
-              grad.addColorStop(0, '#09090b');
-              grad.addColorStop(0.5, '#1a1a1f');
-              grad.addColorStop(1, '#09090b');
-              ctx.fillStyle = grad;
+              // Background
+              ctx.fillStyle = '#09090b';
               ctx.fillRect(0, 0, w, h);
+              ctx.fillStyle = '#18181b';
+              ctx.fillRect(0, 600, w, 800);
 
-              // Accent line
+              // Top accent bar
               ctx.fillStyle = '#a3e635';
-              ctx.fillRect(80, 400, 6, 200);
+              ctx.fillRect(0, 0, w, 8);
 
               // Club name
               ctx.fillStyle = '#a3e635';
-              ctx.font = 'bold 42px sans-serif';
-              ctx.fillText('THIRTY FC', 80, 340);
+              ctx.font = '700 52px Arial, sans-serif';
+              ctx.fillText('THIRTY FC', 80, 120);
+
+              // Divider
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, 180, 100, 6);
 
               // Title
               ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold italic 72px sans-serif';
-              const titleLines = schedule.title.length > 18 ? [schedule.title.slice(0, 18), schedule.title.slice(18)] : [schedule.title];
-              titleLines.forEach((line, i) => ctx.fillText(line.toUpperCase(), 120, 500 + i * 90));
+              ctx.font = '900 80px Arial, sans-serif';
+              const words = schedule.title.toUpperCase().split(' ');
+              let line = '', lineY = 320;
+              words.forEach(word => {
+                const test = line + word + ' ';
+                if (ctx.measureText(test).width > 900 && line) {
+                  ctx.fillText(line.trim(), 80, lineY);
+                  line = word + ' '; lineY += 100;
+                } else { line = test; }
+              });
+              ctx.fillText(line.trim(), 80, lineY);
 
-              // Info
-              const infoY = 500 + titleLines.length * 90 + 80;
+              // Info section
+              const iy = 700;
+              ctx.font = '700 44px Arial, sans-serif';
+              ctx.fillStyle = '#e4e4e7';
+              ctx.fillText(format(schedule.timestamp, 'EEEE', { locale: idLocale }).toUpperCase(), 80, iy);
+              ctx.fillStyle = '#a3e635';
+              ctx.font = '900 96px Arial, sans-serif';
+              ctx.fillText(format(schedule.timestamp, 'd'), 80, iy + 130);
               ctx.fillStyle = '#a1a1aa';
-              ctx.font = 'bold 48px sans-serif';
-              ctx.fillText(`📅  ${format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale })}`, 120, infoY);
-              ctx.fillText(`⏰  ${format(schedule.timestamp, 'HH:mm')} WIB`, 120, infoY + 80);
-              ctx.fillText(`📍  ${schedule.location}`, 120, infoY + 160);
-              ctx.fillText(`💰  Rp ${(schedule.feePerPlayer || 0).toLocaleString('id-ID')} / orang`, 120, infoY + 240);
+              ctx.font = '700 44px Arial, sans-serif';
+              ctx.fillText(format(schedule.timestamp, 'MMMM yyyy', { locale: idLocale }).toUpperCase(), 220, iy + 130);
 
-              // Participants count
+              // Time & Location
+              ctx.fillStyle = '#ffffff';
+              ctx.font = '700 56px Arial, sans-serif';
+              ctx.fillText(format(schedule.timestamp, 'HH:mm') + ' WIB', 80, iy + 260);
+              ctx.fillStyle = '#a1a1aa';
+              ctx.font = '600 44px Arial, sans-serif';
+              ctx.fillText(schedule.location, 80, iy + 340);
+
+              // Fee
               ctx.fillStyle = '#a3e635';
-              ctx.font = 'bold 120px sans-serif';
-              ctx.fillText(`${participants.length}`, 120, infoY + 440);
+              ctx.font = '900 64px Arial, sans-serif';
+              ctx.fillText('Rp ' + (schedule.feePerPlayer || 0).toLocaleString('id-ID'), 80, iy + 480);
               ctx.fillStyle = '#71717a';
-              ctx.font = 'bold 42px sans-serif';
-              ctx.fillText('user sudah join', 280, infoY + 440);
+              ctx.font = '600 36px Arial, sans-serif';
+              ctx.fillText('/ orang', 80 + ctx.measureText('Rp ' + (schedule.feePerPlayer || 0).toLocaleString('id-ID')).width + 20, iy + 480);
 
-              // Footer CTA
+              // Participants
+              ctx.fillStyle = '#27272a';
+              ctx.fillRect(80, iy + 540, w - 160, 120);
               ctx.fillStyle = '#a3e635';
-              ctx.fillRect(80, h - 280, w - 160, 120);
-              ctx.fillStyle = '#09090b';
-              ctx.font = 'bold 48px sans-serif';
+              ctx.font = '900 56px Arial, sans-serif';
               ctx.textAlign = 'center';
-              ctx.fillText('AYO IKUT MAIN! ⚽', w / 2, h - 205);
+              ctx.fillText(participants.length + ' USER SUDAH JOIN', w / 2, iy + 620);
               ctx.textAlign = 'left';
 
-              // Watermark
-              ctx.fillStyle = '#3f3f46';
-              ctx.font = '32px sans-serif';
+              // CTA
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, h - 300, w - 160, 140);
+              ctx.fillStyle = '#09090b';
+              ctx.font = '900 52px Arial, sans-serif';
               ctx.textAlign = 'center';
-              ctx.fillText('thirty-fc.vercel.app', w / 2, h - 100);
+              ctx.fillText('AYO IKUT MAIN!', w / 2, h - 215);
+              ctx.textAlign = 'left';
 
-              // Download/share
-              canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                const file = new File([blob], 'thirty-fc-match.png', { type: 'image/png' });
-                if (navigator.share && navigator.canShare?.({ files: [file] })) {
-                  await navigator.share({ files: [file], title: schedule.title });
-                } else {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url; a.download = 'thirty-fc-match.png'; a.click();
-                  URL.revokeObjectURL(url);
-                }
-              }, 'image/png');
+              // Bottom bar
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(0, h - 8, w, 8);
+
+              // Convert and download
+              const dataUrl = canvas.toDataURL('image/png');
+              const link = document.createElement('a');
+              link.download = `ThirtyFC_${schedule.title.replace(/\s+/g, '_')}.png`;
+              link.href = dataUrl;
+              link.click();
             }}
             className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
           >
-            <Share2 className="w-4 h-4" /> Share Banner
+            <Share2 className="w-4 h-4" /> Download Banner (Share)
+          </button>
           </button>
 
           {/* Join Actions */}
