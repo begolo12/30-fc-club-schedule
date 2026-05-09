@@ -48,7 +48,7 @@ export default function Login() {
           
           <h1 className="text-3xl md:text-4xl font-black italic mb-3 tracking-tighter uppercase text-zinc-100">Thirty FC Club</h1>
           <p className="text-zinc-500 mb-10 text-sm max-w-xs leading-relaxed">
-            Sign in to manage futsal schedules, join matches, and coordinate with the team.
+            Masuk untuk kelola jadwal, ikut main, dan koordinasi bareng tim.
           </p>
           
           {!showAdminLogin ? (
@@ -66,7 +66,7 @@ export default function Login() {
                 className="w-full mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-300 uppercase tracking-widest transition-colors"
               >
                 <Shield className="w-3 h-3" />
-                Admin Login
+                Login Admin
               </button>
             </div>
           ) : (

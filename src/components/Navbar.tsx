@@ -19,7 +19,7 @@ export default function Navbar() {
         <div className="flex items-center gap-4 text-sm font-medium">
           <div className="flex items-center gap-3 md:pl-4 md:border-l border-zinc-800">
             <div className="text-right hidden sm:block">
-              <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Player</p>
+              <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">User</p>
               <p className="text-zinc-200">{user.displayName}</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-lime-400 font-bold overflow-hidden shadow-inner">

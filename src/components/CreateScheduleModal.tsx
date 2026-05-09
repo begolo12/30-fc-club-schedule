@@ -263,7 +263,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Iuran / Pemain (Rp)</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Iuran / Orang (Rp)</label>
                 <input
                   required
                   type="text"

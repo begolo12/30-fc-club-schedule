@@ -390,28 +390,27 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
           {upcomingMatches.slice(1).map(match => (
             <Link 
               key={match.id}
               to={`/schedule/${match.id}`}
-              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 hover:border-zinc-700 transition-all group flex flex-col h-full"
+              className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-4 hover:border-zinc-700 transition-all group flex items-center justify-between"
             >
-              <div className="flex justify-between items-start mb-4">
-                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                  {format(match.timestamp, 'd MMM')}
-                </span>
-                <span className="text-[9px] font-black uppercase tracking-widest text-lime-400">
-                  {format(match.timestamp, 'HH:mm')}
-                </span>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 w-11 h-11 bg-zinc-950 border border-zinc-800 rounded-xl flex flex-col items-center justify-center">
+                  <span className="text-[9px] font-black uppercase text-zinc-500 leading-none">{format(match.timestamp, 'MMM')}</span>
+                  <span className="text-sm font-black text-zinc-100 leading-none">{format(match.timestamp, 'd')}</span>
+                </div>
+                <div className="min-w-0">
+                  <h5 className="text-xs font-black italic uppercase tracking-tight text-zinc-100 group-hover:text-lime-400 transition-colors truncate">{match.title}</h5>
+                  <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-600 font-bold uppercase">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{match.location}</span>
+                  </div>
+                </div>
               </div>
-              <h5 className="text-lg font-black italic uppercase tracking-tight text-zinc-100 group-hover:text-lime-400 transition-colors line-clamp-1 mb-4">
-                {match.title}
-              </h5>
-              <div className="mt-auto flex items-center gap-2 text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate">{match.location}</span>
-              </div>
+              <span className="text-[10px] font-black text-lime-400 shrink-0 ml-3">{format(match.timestamp, 'HH:mm')}</span>
             </Link>
           ))}
         </div>

@@ -125,7 +125,7 @@ export default function Finance() {
       footStyles: { fillColor: [244, 244, 245], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
 
-    docPdf.save(`Laporan_Keuangan_30FC_${exportMonth}.pdf`);
+    docPdf.save(`Laporan_Keuangan_ThirtyFC_${exportMonth}.pdf`);
   };
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);

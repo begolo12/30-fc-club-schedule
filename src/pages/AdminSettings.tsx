@@ -274,7 +274,7 @@ export default function AdminSettings() {
                   <input type="number" value={rutinForm.fieldCost} onChange={(e) => setRutinForm({...rutinForm, fieldCost: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-600 uppercase">Iuran/Pemain</label>
+                  <label className="text-[10px] font-black text-zinc-600 uppercase">Iuran/Orang</label>
                   <input type="number" value={rutinForm.feePerPlayer} onChange={(e) => setRutinForm({...rutinForm, feePerPlayer: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
                 </div>
               </div>
