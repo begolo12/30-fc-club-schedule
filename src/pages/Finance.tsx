@@ -513,9 +513,20 @@ export default function Finance() {
         <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center justify-between px-1">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">Persetujuan Iuran (Pending)</h4>
-            <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
-              {pendingApprovals.length} PERLU APPROVAL
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (!window.confirm(`Approve semua ${pendingApprovals.length} pembayaran sekaligus?`)) return;
+                  pendingApprovals.forEach(p => doApprove(p));
+                }}
+                className="text-[9px] font-black text-lime-400 bg-lime-400/10 px-3 py-1.5 rounded-lg border border-lime-400/20 uppercase tracking-widest hover:bg-lime-400/20 transition-all"
+              >
+                Approve Semua
+              </button>
+              <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
+                {pendingApprovals.length}
+              </span>
+            </div>
           </div>
           <div className="space-y-2">
             {pendingApprovals.map(p => (

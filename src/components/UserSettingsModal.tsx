@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { X, User, Check } from 'lucide-react';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import React, { useState, useRef } from 'react';
+import { X, User, Check, Camera } from 'lucide-react';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,8 +16,24 @@ export default function UserSettingsModal({ isOpen, onClose }: Props) {
   const [tempNickname, setTempNickname] = useState(nickname);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const canvas = document.createElement('canvas');
+    const img = new window.Image();
+    img.onload = () => {
+      canvas.width = 128;
+      canvas.height = 128;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, 128, 128);
+      setAvatarPreview(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = URL.createObjectURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +42,11 @@ export default function UserSettingsModal({ isOpen, onClose }: Props) {
     try {
       // 1. Update user profile nickname
       await updateNickname(tempNickname);
+
+      // 2. Save avatar if changed
+      if (avatarPreview && user) {
+        await setDoc(doc(db, 'users', user.uid), { avatarUrl: avatarPreview }, { merge: true });
+      }
 
       // 2. Find and update all participant records in all schedules
       const schedulesRef = collection(db, 'schedules');
@@ -68,6 +89,22 @@ export default function UserSettingsModal({ isOpen, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-3">
+            <button type="button" onClick={() => fileRef.current?.click()} className="relative w-20 h-20 rounded-full bg-zinc-800 border-2 border-zinc-700 hover:border-lime-400 transition-all overflow-hidden group">
+              {avatarPreview || user?.photoURL ? (
+                <img src={avatarPreview || user?.photoURL || ''} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-black text-lime-400">{(nickname || 'U')[0]}</span>
+              )}
+              <div className="absolute inset-0 bg-zinc-950/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-5 h-5 text-lime-400" />
+              </div>
+            </button>
+            <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">Tap untuk ganti foto</p>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} />
+          </div>
+
           <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block ml-1">Nama di Lapangan (Max 6 Char)</label>

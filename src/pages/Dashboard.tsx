@@ -11,6 +11,7 @@ import { listenForNewSchedules } from '../lib/realtimeNotifications';
 import { BADGES, getBadgeById, calculateBadges } from '../lib/badges';
 import UserSettingsModal from '../components/UserSettingsModal';
 import CreateScheduleModal from '../components/CreateScheduleModal';
+import { SkeletonCard, SkeletonList } from '../components/Skeleton';
 
 interface Transaction {
   id: string;
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const { user, nickname, isAdmin } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState<Schedule[]>([]);
   const [cancelledMatches, setCancelledMatches] = useState<Schedule[]>([]);
+  const [completedMatches, setCompletedMatches] = useState<Schedule[]>([]);
   const [unpaidMatches, setUnpaidMatches] = useState<{id: string; title: string}[]>([]);
   const [balance, setBalance] = useState(0);
   const [monthIncome, setMonthIncome] = useState(0);
@@ -53,6 +55,23 @@ export default function Dashboard() {
   const [players, setPlayers] = useState<ClubUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [playerSearch, setPlayerSearch] = useState('');
+  const [countdown, setCountdown] = useState('');
+
+  // Countdown timer
+  useEffect(() => {
+    const tick = () => {
+      if (!upcomingMatches[0]) return;
+      const diff = upcomingMatches[0].timestamp - Date.now();
+      if (diff <= 0) { setCountdown('Sekarang!'); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setCountdown(d > 0 ? `${d}h ${h}j ${m}m` : `${h}j ${m}m`);
+    };
+    tick();
+    const timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
+  }, [upcomingMatches]);
 
   useEffect(() => {
     // 1. Fetch matches (both active and recently cancelled)
@@ -129,7 +148,13 @@ export default function Dashboard() {
       setPlayers(data);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
-    // 4. Setup notification listener for new schedules
+    // 4. Fetch completed matches
+    const qCompleted = query(collection(db, 'schedules'), where('status', '==', 'completed'), orderBy('timestamp', 'desc'), limit(5));
+    const unsubCompleted = onSnapshot(qCompleted, (snap) => {
+      setCompletedMatches(snap.docs.map(d => ({ id: d.id, ...d.data() } as Schedule)));
+    });
+
+    // 5. Setup notification listener for new schedules
     const scheduleListener = user ? listenForNewSchedules(user.uid) : { unsubscribe: () => {} };
 
     return () => {
@@ -137,6 +162,7 @@ export default function Dashboard() {
       unsubFinance();
       unsubSettings();
       unsubUsers();
+      unsubCompleted();
       scheduleListener.unsubscribe();
     };
   }, [user]);
@@ -165,6 +191,15 @@ export default function Dashboard() {
   const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate()).getTime();
   const tomorrowEnd = tomorrowStart + 86400000;
   const tomorrowMatches = upcomingMatches.filter(m => m.timestamp >= tomorrowStart && m.timestamp < tomorrowEnd);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col gap-8 pb-24 md:pb-12">
+        <SkeletonCard />
+        <SkeletonList count={3} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col gap-8 pb-24 md:pb-12">
@@ -386,6 +421,7 @@ export default function Dashboard() {
                 Laga Berikutnya
               </span>
               <span className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">
+                {countdown && <span className="text-lime-400 mr-2">⏱ {countdown}</span>}
                 {format(nextMatch.timestamp, 'EEEE, d MMM', { locale: idLocale })}
               </span>
             </div>
@@ -450,6 +486,30 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Match History */}
+      {completedMatches.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-2">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Match</h4>
+            <span className="text-[10px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">{completedMatches.length} selesai</span>
+          </div>
+          <div className="space-y-2">
+            {completedMatches.map(match => (
+              <Link key={match.id} to={`/schedule/${match.id}`} className="bg-zinc-900/30 border border-zinc-800/30 rounded-2xl p-3 flex items-center justify-between group hover:border-zinc-700 transition-all">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-center text-[10px] font-black text-zinc-500">✓</div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black text-zinc-300 uppercase truncate group-hover:text-lime-400 transition-colors">{match.title}</p>
+                    <p className="text-[10px] text-zinc-600 font-bold">{format(match.timestamp, 'd MMM yyyy', { locale: idLocale })}</p>
+                  </div>
+                </div>
+                <span className="text-[9px] font-black text-zinc-600 uppercase">Selesai</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Admin FAB - Create Match */}
       {isAdmin && (

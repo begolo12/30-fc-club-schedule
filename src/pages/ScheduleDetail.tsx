@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, collection, query, orderBy, setDoc, deleteDoc, updateDoc, getDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, orderBy, setDoc, deleteDoc, updateDoc, getDoc, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -222,6 +222,30 @@ export default function ScheduleDetail() {
     });
   };
 
+  const handleDuplicate = async () => {
+    if (!isAdmin || !schedule) return;
+    if (!window.confirm(`Duplikat jadwal "${schedule.title}" ke minggu depan?`)) return;
+    const nextWeek = schedule.timestamp + 7 * 86400000;
+    try {
+      const newDoc = await addDoc(collection(db, 'schedules'), {
+        title: schedule.title,
+        location: schedule.location,
+        timestamp: nextWeek,
+        type: schedule.type || 'latihan',
+        fieldCost: schedule.fieldCost,
+        dpCost: schedule.dpCost,
+        feePerPlayer: schedule.feePerPlayer,
+        otherCosts: schedule.otherCosts || [],
+        totalCost: schedule.totalCost,
+        status: 'upcoming',
+        createdAt: new Date()
+      });
+      navigate(`/schedule/${newDoc.id}`);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'duplicate-schedule');
+    }
+  };
+
   const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!isAdmin || !id) return;
     if (status !== 'unpaid') {
@@ -414,6 +438,11 @@ export default function ScheduleDetail() {
           {isAdmin && schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
             <button onClick={handleCloseMatch} className="w-full bg-lime-400 hover:bg-lime-300 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-lime-400/10">
               ✓ Selesaikan Pertandingan
+            </button>
+          )}
+          {isAdmin && (
+            <button onClick={handleDuplicate} className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
+              📋 Duplikat ke Minggu Depan
             </button>
           )}
 
