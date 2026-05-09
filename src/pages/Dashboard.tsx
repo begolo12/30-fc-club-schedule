@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, LogOut, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone, Plus } from 'lucide-react';
 import { format, startOfToday } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { listenForNewSchedules } from '../lib/realtimeNotifications';
 import UserSettingsModal from '../components/UserSettingsModal';
+import CreateScheduleModal from '../components/CreateScheduleModal';
 
 interface Transaction {
   id: string;
@@ -38,7 +39,7 @@ interface ClubUser {
 }
 
 export default function Dashboard() {
-  const { user, nickname, signOut } = useAuth();
+  const { user, nickname, isAdmin } = useAuth();
   const [upcomingMatches, setUpcomingMatches] = useState<Schedule[]>([]);
   const [cancelledMatches, setCancelledMatches] = useState<Schedule[]>([]);
   const [unpaidMatches, setUnpaidMatches] = useState<{id: string; title: string}[]>([]);
@@ -154,25 +155,26 @@ export default function Dashboard() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPlayersOpen, setIsPlayersOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
 
   return (
     <div className="flex-1 flex flex-col gap-8 pb-24 md:pb-12">
       {/* Payment Reminder */}
       {unpaidMatches.length > 0 && (
-        <div className="mx-1 bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 animate-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-400/20 rounded-xl flex items-center justify-center text-orange-400 shrink-0">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">Tagihan Iuran</h4>
-              <p className="text-xs text-zinc-300 font-bold mt-0.5">
-                Kamu belum bayar iuran untuk <span className="text-orange-400 italic">{unpaidMatches.map(m => m.title).join(', ')}</span>
-              </p>
-            </div>
-            <Link to={`/schedule/${unpaidMatches[0].id}`} className="shrink-0 bg-orange-400 text-zinc-950 px-3 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest">Bayar</Link>
-          </div>
+        <div className="mx-1 space-y-2 animate-in slide-in-from-top-4 duration-500">
+          {unpaidMatches.map(m => (
+            <Link key={m.id} to={`/schedule/${m.id}`} className="flex items-center gap-3 bg-orange-400/10 border border-orange-400/20 rounded-2xl p-4 hover:border-orange-400/40 transition-all">
+              <div className="w-10 h-10 bg-orange-400/20 rounded-xl flex items-center justify-center text-orange-400 shrink-0">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-widest italic">Belum Bayar</h4>
+                <p className="text-xs text-zinc-300 font-bold truncate">{m.title}</p>
+              </div>
+              <span className="shrink-0 bg-orange-400 text-zinc-950 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Bayar</span>
+            </Link>
+          ))}
         </div>
       )}
 
@@ -219,12 +221,6 @@ export default function Dashboard() {
           <Link to="/announcements" className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-lime-400 hover:border-lime-400/50 transition-all shadow-lg" title="Pengumuman">
             <Megaphone className="w-5 h-5" />
           </Link>
-          <button 
-            onClick={signOut}
-            className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-zinc-500 hover:text-red-400 hover:border-red-400/50 transition-all shadow-lg"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
         </div>
       </header>
 
@@ -286,12 +282,12 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
           <Wallet className="w-5 h-5 text-lime-400 mb-2 opacity-50" />
-          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Saldo Kas</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Saldo Kas</p>
           <h3 className="text-xs font-black italic text-zinc-100">Rp {balance.toLocaleString('id-ID')}</h3>
         </div>
         <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
           <Trophy className="w-5 h-5 text-blue-400 mb-2 opacity-50" />
-          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Jadwal</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Jadwal</p>
           <h3 className="text-xs font-black italic text-zinc-100">{upcomingMatches.length}</h3>
         </div>
         <button
@@ -300,7 +296,7 @@ export default function Dashboard() {
           className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 transition-all"
         >
           <Users className="w-5 h-5 text-orange-400 mb-2 opacity-50" />
-          <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pemain</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Pemain</p>
           <h3 className="text-xs font-black italic text-zinc-100">{totalPlayers}</h3>
         </button>
       </div>
@@ -310,27 +306,27 @@ export default function Dashboard() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl mx-1">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Keuangan Bulan Ini</h4>
-            <span className="text-[8px] font-black text-zinc-600 uppercase">{format(new Date(), 'MMMM yyyy', { locale: idLocale })}</span>
+            <span className="text-[10px] font-black text-zinc-600 uppercase">{format(new Date(), 'MMMM yyyy', { locale: idLocale })}</span>
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-[8px] font-black text-zinc-500 uppercase w-16">Masuk</span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase w-16">Masuk</span>
               <div className="flex-1 h-6 bg-zinc-950 rounded-lg overflow-hidden">
                 <div className="h-full bg-lime-400 rounded-lg flex items-center px-2 transition-all duration-500" style={{ width: `${Math.min(100, (monthIncome / Math.max(monthIncome, monthExpense)) * 100)}%` }}>
-                  <span className="text-[8px] font-black text-zinc-950">Rp {monthIncome.toLocaleString('id-ID')}</span>
+                  <span className="text-[10px] font-black text-zinc-950">Rp {monthIncome.toLocaleString('id-ID')}</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[8px] font-black text-zinc-500 uppercase w-16">Keluar</span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase w-16">Keluar</span>
               <div className="flex-1 h-6 bg-zinc-950 rounded-lg overflow-hidden">
                 <div className="h-full bg-red-400 rounded-lg flex items-center px-2 transition-all duration-500" style={{ width: `${Math.min(100, (monthExpense / Math.max(monthIncome, monthExpense)) * 100)}%` }}>
-                  <span className="text-[8px] font-black text-zinc-950">Rp {monthExpense.toLocaleString('id-ID')}</span>
+                  <span className="text-[10px] font-black text-zinc-950">Rp {monthExpense.toLocaleString('id-ID')}</span>
                 </div>
               </div>
             </div>
             <div className="flex justify-between pt-2 border-t border-zinc-800/50">
-              <span className="text-[8px] font-black text-zinc-500 uppercase">Selisih</span>
+              <span className="text-[10px] font-black text-zinc-500 uppercase">Selisih</span>
               <span className={`text-xs font-black italic ${monthIncome - monthExpense >= 0 ? 'text-lime-400' : 'text-red-400'}`}>
                 {monthIncome - monthExpense >= 0 ? '+' : '-'} Rp {Math.abs(monthIncome - monthExpense).toLocaleString('id-ID')}
               </span>
@@ -420,6 +416,18 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Admin FAB - Create Match */}
+      {isAdmin && (
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="fixed bottom-24 right-5 z-40 w-14 h-14 bg-lime-400 text-zinc-950 rounded-full shadow-xl shadow-lime-400/30 flex items-center justify-center hover:bg-lime-300 transition-all md:bottom-8"
+        >
+          <Plus className="w-7 h-7" />
+        </button>
+      )}
+
+      <CreateScheduleModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </div>
   );
 }

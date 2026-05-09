@@ -45,7 +45,7 @@ export default function FormationModal({ isOpen, onClose, participants }: Format
               {occupant ? (
                 <span className="text-[9px] font-black text-white">{(occupant.nickname || occupant.name).substring(0, 2).toUpperCase()}</span>
               ) : (
-                <span className="text-[8px] font-black text-white/5 uppercase tracking-tighter">{role[0]}</span>
+                <span className="text-[10px] font-black text-white/5 uppercase tracking-tighter">{role[0]}</span>
               )}
             </div>
             <div className={cn(
@@ -103,26 +103,26 @@ export default function FormationModal({ isOpen, onClose, participants }: Format
           <div className="space-y-4 pb-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <p className="text-[8px] font-black uppercase tracking-widest text-red-500 border-l-2 border-red-500 pl-2">Cadangan Tim A</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-red-500 border-l-2 border-red-500 pl-2">Cadangan Tim A</p>
                 <div className="flex flex-wrap gap-1">
                   {participants.filter(p => p.team === 'A' && p.status === 'substitute').length > 0 ? (
                     participants.filter(p => p.team === 'A' && p.status === 'substitute').map(p => (
                       <span key={p.id} className="px-2 py-1 bg-zinc-800 text-[9px] font-bold text-zinc-400 rounded-lg uppercase tracking-tight line-clamp-1">{p.name.split(' ')[0]}</span>
                     ))
                   ) : (
-                    <span className="text-[8px] text-zinc-700 italic font-bold uppercase">Kosong</span>
+                    <span className="text-[10px] text-zinc-700 italic font-bold uppercase">Kosong</span>
                   )}
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-[8px] font-black uppercase tracking-widest text-blue-500 border-l-2 border-blue-500 pl-2">Cadangan Tim B</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 border-l-2 border-blue-500 pl-2">Cadangan Tim B</p>
                 <div className="flex flex-wrap gap-1">
                   {participants.filter(p => p.team === 'B' && p.status === 'substitute').length > 0 ? (
                     participants.filter(p => p.team === 'B' && p.status === 'substitute').map(p => (
                       <span key={p.id} className="px-2 py-1 bg-zinc-800 text-[9px] font-bold text-zinc-400 rounded-lg uppercase tracking-tight line-clamp-1">{p.name.split(' ')[0]}</span>
                     ))
                   ) : (
-                    <span className="text-[8px] text-zinc-700 italic font-bold uppercase">Kosong</span>
+                    <span className="text-[10px] text-zinc-700 italic font-bold uppercase">Kosong</span>
                   )}
                 </div>
               </div>

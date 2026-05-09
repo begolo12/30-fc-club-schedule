@@ -133,7 +133,7 @@ export default function JoinMatchModal({ isOpen, onClose, onJoin, participants }
 
           {/* Substitute Buttons at the Bottom */}
           <div className="space-y-3 pt-2">
-            <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600 text-center">Masuk Sebagai Cadangan</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 text-center">Masuk Sebagai Cadangan</p>
             <div className="grid grid-cols-2 gap-3 pb-4">
               <button 
                 onClick={() => handleJoinSubstitute('A')}

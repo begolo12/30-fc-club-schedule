@@ -429,7 +429,7 @@ export default function Finance() {
               {isAdmin && (
                 <button 
                   onClick={() => setIsEditingInitial(true)}
-                  className="bg-zinc-800 text-zinc-400 px-3 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:text-lime-400 hover:border-lime-400/50 transition-all"
+                  className="bg-zinc-800 text-zinc-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-lime-400 hover:border-lime-400/50 transition-all"
                 >
                   Edit
                 </button>
@@ -479,7 +479,7 @@ export default function Finance() {
         <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="flex items-center justify-between px-1">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400">Persetujuan Iuran (Pending)</h4>
-            <span className="text-[8px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20 uppercase tracking-widest">
               {pendingApprovals.length} PERLU APPROVAL
             </span>
           </div>
@@ -493,12 +493,12 @@ export default function Finance() {
                     </div>
                     <div>
                       <h5 className="text-[11px] font-black text-zinc-100 uppercase tracking-tight line-clamp-1">{p.name}</h5>
-                      <p className="text-[8px] text-zinc-500 font-bold uppercase mt-0.5">{p.matchTitle}</p>
+                      <p className="text-[10px] text-zinc-500 font-bold uppercase mt-0.5">{p.matchTitle}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-black italic text-zinc-100">Rp 25.000</span>
-                    <p className="text-[7px] text-orange-400 font-black uppercase tracking-widest mt-0.5">{p.paymentStatus === 'pending_qris' ? 'VIA QRIS' : 'VIA TUNAI'}</p>
+                    <p className="text-[10px] text-orange-400 font-black uppercase tracking-widest mt-0.5">{p.paymentStatus === 'pending_qris' ? 'VIA QRIS' : 'VIA TUNAI'}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -525,7 +525,7 @@ export default function Finance() {
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex items-center justify-between px-1">
           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Transaksi</h4>
-          <span className="text-[8px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
+          <span className="text-[10px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
             {transactions.length} DATA
           </span>
         </div>
@@ -548,8 +548,8 @@ export default function Finance() {
                   <div>
                     <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{tx.description}</h5>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {tx.userName && <span className="text-[8px] text-zinc-500 font-bold uppercase">{tx.userName}</span>}
-                      <span className="text-[8px] text-zinc-600 font-medium uppercase">{format(tx.timestamp, 'd MMM, HH:mm')}</span>
+                      {tx.userName && <span className="text-[10px] text-zinc-500 font-bold uppercase">{tx.userName}</span>}
+                      <span className="text-[10px] text-zinc-600 font-medium uppercase">{format(tx.timestamp, 'd MMM, HH:mm')}</span>
                     </div>
                   </div>
                 </div>
@@ -570,7 +570,7 @@ export default function Finance() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">Piutang Iuran</h4>
-            <span className="text-[8px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20 uppercase tracking-widest">
               Total: Rp {piutang.reduce((a, p) => a + p.total, 0).toLocaleString('id-ID')}
             </span>
           </div>
@@ -588,7 +588,7 @@ export default function Finance() {
                     </div>
                     <div>
                       <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight">{p.name}</h5>
-                      <span className="text-[8px] text-zinc-600 font-bold uppercase">{p.count} match belum bayar</span>
+                      <span className="text-[10px] text-zinc-600 font-bold uppercase">{p.count} match belum bayar</span>
                     </div>
                   </div>
                   <span className="text-xs font-black italic text-red-400">Rp {p.total.toLocaleString('id-ID')}</span>
@@ -604,7 +604,7 @@ export default function Finance() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
             <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Riwayat Bayar Saya</h4>
-            <span className="text-[8px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
+            <span className="text-[10px] font-black text-zinc-700 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800 uppercase tracking-widest">
               {myPayments.filter(p => p.status === 'paid_qris' || p.status === 'paid_cash').length}/{myPayments.length} Lunas
             </span>
           </div>
@@ -618,9 +618,9 @@ export default function Finance() {
                 <div key={p.matchId} className="bg-zinc-900/40 border border-zinc-800/30 rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{p.matchTitle}</h5>
-                    <span className="text-[8px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase">{format(p.timestamp, 'd MMM yyyy')}</span>
                   </div>
-                  <span className={`text-[8px] font-black uppercase px-3 py-1.5 rounded-lg border ${
+                  <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border ${
                     p.status === 'paid_qris' || p.status === 'paid_cash' 
                       ? 'text-lime-400 bg-lime-400/10 border-lime-400/20' 
                       : p.status === 'pending_qris' || p.status === 'pending_cash'
@@ -653,13 +653,13 @@ export default function Finance() {
                   <div className="flex flex-col gap-2">
                     <button 
                       onClick={() => setSelectedMatch(null)}
-                      className="text-[8px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400"
+                      className="text-[10px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400"
                     >
                       <ArrowLeft className="w-3 h-3" /> Kembali ke Daftar
                     </button>
                     <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl">
                       <h4 className="text-sm font-black italic uppercase tracking-tighter text-lime-400">{selectedMatch.title}</h4>
-                      <p className="text-[8px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{selectedMatch.location}</p>
+                      <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mt-1">{selectedMatch.location}</p>
                     </div>
                   </div>
 
@@ -670,7 +670,7 @@ export default function Finance() {
                       <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
                         <button 
                           onClick={() => setShowQrisImage(false)}
-                          className="text-[8px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400 self-start"
+                          className="text-[10px] font-black uppercase tracking-widest text-zinc-600 flex items-center gap-1 hover:text-zinc-400 self-start"
                         >
                           <ArrowLeft className="w-3 h-3" /> Kembali
                         </button>
@@ -697,7 +697,7 @@ export default function Finance() {
                       </div>
                       <div className="text-left">
                         <span className="text-xs font-black italic uppercase tracking-tighter text-zinc-100 block">QRIS (Otomatis)</span>
-                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Verifikasi oleh Admin</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Verifikasi oleh Admin</span>
                       </div>
                     </button>
 
@@ -710,7 +710,7 @@ export default function Finance() {
                       </div>
                       <div className="text-left">
                         <span className="text-xs font-black italic uppercase tracking-tighter text-zinc-100 block">Bayar Tunai / Cash</span>
-                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Serahkan ke Bendahara</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Serahkan ke Bendahara</span>
                       </div>
                     </button>
                     </>
@@ -735,7 +735,7 @@ export default function Finance() {
                           <h4 className="text-sm font-black italic uppercase tracking-tighter text-zinc-100">{match.title}</h4>
                           <span className="text-[10px] font-black text-lime-400">Rp 25.000</span>
                         </div>
-                        <div className="flex items-center gap-2 text-[8px] font-bold text-zinc-600 uppercase tracking-widest">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
                           <span>{format(match.timestamp, 'EEEE, d MMM', { locale: idLocale })}</span>
                           <span>•</span>
                           <span>{match.location}</span>

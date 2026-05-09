@@ -266,7 +266,7 @@ export default function ScheduleDetail() {
           <div className={cn("w-2 h-2 rounded-full", colorClass.includes('red') ? 'bg-red-500' : 'bg-blue-500')} />
           {teamName}
         </h4>
-        <span className="text-[8px] font-black text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-full">{squad.filter(s => s.status === 'starting').length}/9 IX</span>
+        <span className="text-[10px] font-black text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-full">{squad.filter(s => s.status === 'starting').length}/9 IX</span>
       </div>
 
       <div className="space-y-2">
@@ -276,17 +276,17 @@ export default function ScheduleDetail() {
             p.userId === user?.uid && "border-lime-400/30 bg-lime-400/5"
           )}>
               <div className="flex items-center gap-3">
-                <span className="w-7 h-7 flex items-center justify-center bg-zinc-950 rounded-lg text-[8px] font-black text-lime-400 border border-zinc-800 uppercase">
+                <span className="w-7 h-7 flex items-center justify-center bg-zinc-950 rounded-lg text-[10px] font-black text-lime-400 border border-zinc-800 uppercase">
                   {p.role.split('-')[0]}
                 </span>
                 <span className="font-bold text-[12px] text-zinc-300 uppercase tracking-tight line-clamp-1">{p.nickname || p.name}</span>
               </div>
             <div className="flex items-center gap-2">
-              {p.paymentStatus === 'paid_qris' && <span className="text-[7px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
-              {p.paymentStatus === 'paid_cash' && <span className="text-[7px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
-              {p.paymentStatus === 'pending_qris' && <span className="text-[7px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
+              {p.paymentStatus === 'paid_qris' && <span className="text-[10px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
+              {p.paymentStatus === 'paid_cash' && <span className="text-[10px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
+              {p.paymentStatus === 'pending_qris' && <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
               {isAdmin && p.paymentStatus !== 'paid_qris' && p.paymentStatus !== 'paid_cash' && (
-                <button onClick={() => handleVerifyPayment(p.userId, 'paid_cash')} className="text-[7px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
+                <button onClick={() => handleVerifyPayment(p.userId, 'paid_cash')} className="text-[10px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
               )}
             </div>
           </div>
@@ -294,7 +294,7 @@ export default function ScheduleDetail() {
         <div className="flex flex-wrap gap-1 pt-2 border-t border-zinc-800/30">
           {squad.filter(p => p.status === 'substitute').map(p => (
             <div key={p.id} className="px-2 py-1 bg-zinc-950/40 border border-zinc-900 rounded-lg opacity-60 flex items-center gap-2">
-              <span className="text-[7px] font-black text-zinc-600 uppercase">{p.role}</span>
+              <span className="text-[10px] font-black text-zinc-600 uppercase">{p.role}</span>
               <span className="text-[9px] font-bold text-zinc-500 uppercase">{p.nickname || p.name}</span>
             </div>
           ))}
@@ -375,7 +375,7 @@ export default function ScheduleDetail() {
 
               {isAdmin && (
                 <div className="mt-4 pt-4 border-t border-zinc-950/20">
-                  <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Status Keuangan (Admin)</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Status Keuangan (Admin)</p>
                   <div className="flex justify-between text-[10px] font-black">
                     <span className="opacity-60">Terkumpul:</span>
                     <span className="italic text-emerald-800">Rp {totalCollected.toLocaleString('id-ID')}</span>
@@ -404,7 +404,7 @@ export default function ScheduleDetail() {
               <div className="w-10 h-10 bg-lime-400/10 rounded-xl flex items-center justify-center text-lime-400 shrink-0"><Users className="w-5 h-5" /></div>
               <div className="min-w-0">
                 <h4 className="text-sm font-black italic uppercase tracking-tighter text-zinc-100">Ayo Join Laga!</h4>
-                <p className="text-zinc-500 text-[8px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
+                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Pilih posisi & konfirmasi bayar</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -444,7 +444,7 @@ export default function ScheduleDetail() {
             {messages.map(msg => (
               <div key={msg.id} className={cn("max-w-[90%] group", msg.userId === user?.uid ? "ml-auto" : "")}>
                 <div className={cn("px-4 py-3 rounded-2xl shadow-sm", msg.userId === user?.uid ? "bg-lime-400 text-zinc-950 rounded-tr-none" : "bg-zinc-950 border border-zinc-800 text-zinc-200 rounded-tl-none")}>
-                  <p className="text-[8px] font-black uppercase opacity-50 mb-0.5">{msg.name}</p>
+                  <p className="text-[10px] font-black uppercase opacity-50 mb-0.5">{msg.name}</p>
                   <p className="text-xs font-medium leading-relaxed">{msg.text}</p>
                 </div>
               </div>
@@ -467,42 +467,63 @@ export default function ScheduleDetail() {
         title={schedule.title}
       />
 
-      {/* QRIS Payment Modal */}
+      {/* Payment Modal */}
       {showQris && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-zinc-950/90 backdrop-blur-md" onClick={() => setShowQris(false)} />
           <div className="relative w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
-              <h3 className="text-xl font-black italic uppercase tracking-tighter text-lime-400">Bayar QRIS</h3>
+            <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-lg font-black italic uppercase tracking-tighter text-lime-400">Bayar Iuran</h3>
               <button onClick={() => setShowQris(false)} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-500">✕</button>
             </div>
-            <div className="p-6 flex flex-col items-center gap-4 overflow-y-auto">
-              <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Scan QR lalu klik "Sudah Bayar"</p>
-              {qrisUrl ? (
-                <img src={qrisUrl} alt="QRIS" className="w-full max-w-[260px] rounded-2xl border border-zinc-800 bg-white p-2" />
-              ) : (
-                <p className="text-[10px] text-zinc-500 font-bold py-8">QRIS belum diupload oleh admin. Upload di menu Admin Settings.</p>
-              )}
-              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 w-full text-center">
-                <p className="text-[9px] text-zinc-500 font-bold uppercase">Total Iuran</p>
+            <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-center">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase">Total Iuran</p>
                 <p className="text-2xl font-black italic text-lime-400">Rp {iuranFix.toLocaleString('id-ID')}</p>
               </div>
-              <button 
-                onClick={() => {
-                  setConfirmDialog({
-                    title: 'Konfirmasi Pembayaran',
-                    message: 'Apakah kamu sudah membayar via QRIS?',
-                    onConfirm: async () => {
-                      setConfirmDialog(null);
-                      await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_qris' }, { merge: true });
-                      setShowQris(false);
-                    }
-                  });
-                }}
-                className="w-full bg-lime-400 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-lime-300 transition-all"
-              >
-                Sudah Bayar
-              </button>
+
+              {/* QRIS Option */}
+              {qrisUrl && (
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Scan QRIS</p>
+                  <img src={qrisUrl} alt="QRIS" className="w-full max-w-[220px] rounded-2xl border border-zinc-800 bg-white p-2" />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button 
+                  onClick={() => {
+                    setConfirmDialog({
+                      title: 'Konfirmasi QRIS',
+                      message: 'Apakah kamu sudah membayar via QRIS?',
+                      onConfirm: async () => {
+                        setConfirmDialog(null);
+                        await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_qris' }, { merge: true });
+                        setShowQris(false);
+                      }
+                    });
+                  }}
+                  className="w-full bg-lime-400 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-lime-300 transition-all"
+                >
+                  Sudah Bayar QRIS
+                </button>
+                <button 
+                  onClick={() => {
+                    setConfirmDialog({
+                      title: 'Bayar Tunai',
+                      message: 'Konfirmasi akan bayar tunai ke bendahara?',
+                      onConfirm: async () => {
+                        setConfirmDialog(null);
+                        await setDoc(doc(db, 'schedules', id!, 'participants', user!.uid), { paymentStatus: 'pending_cash' }, { merge: true });
+                        setShowQris(false);
+                      }
+                    });
+                  }}
+                  className="w-full bg-zinc-800 text-zinc-300 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-zinc-700 transition-all"
+                >
+                  Bayar Tunai / Cash
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -270,11 +270,11 @@ export default function AdminSettings() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[8px] font-black text-zinc-600 uppercase">Sewa Lapangan</label>
+                  <label className="text-[10px] font-black text-zinc-600 uppercase">Sewa Lapangan</label>
                   <input type="number" value={rutinForm.fieldCost} onChange={(e) => setRutinForm({...rutinForm, fieldCost: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
                 </div>
                 <div>
-                  <label className="text-[8px] font-black text-zinc-600 uppercase">Iuran/Pemain</label>
+                  <label className="text-[10px] font-black text-zinc-600 uppercase">Iuran/Pemain</label>
                   <input type="number" value={rutinForm.feePerPlayer} onChange={(e) => setRutinForm({...rutinForm, feePerPlayer: parseInt(e.target.value) || 0})} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 outline-none focus:border-lime-400/50" />
                 </div>
               </div>
@@ -296,13 +296,13 @@ export default function AdminSettings() {
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h4 className="text-sm font-black text-zinc-100 uppercase italic tracking-tight">{rs.title}</h4>
-                        <p className="text-[8px] text-zinc-500 font-bold uppercase mt-1">{rs.location} • {days[rs.dayOfWeek]} {rs.time}</p>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">{rs.location} • {days[rs.dayOfWeek]} {rs.time}</p>
                       </div>
                       <button onClick={() => handleDeleteRutin(rs.id!)} className="text-zinc-600 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     <div className="flex items-center justify-between pt-3 border-t border-zinc-800/50">
-                      <span className="text-[8px] font-black text-zinc-600 uppercase">Rp {rs.fieldCost.toLocaleString('id-ID')} • Iuran Rp {rs.feePerPlayer.toLocaleString('id-ID')}</span>
-                      <button onClick={() => handleGenerateSchedule(rs)} className="bg-lime-400 text-zinc-950 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-lime-300 transition-all">Buat Jadwal →</button>
+                      <span className="text-[10px] font-black text-zinc-600 uppercase">Rp {rs.fieldCost.toLocaleString('id-ID')} • Iuran Rp {rs.feePerPlayer.toLocaleString('id-ID')}</span>
+                      <button onClick={() => handleGenerateSchedule(rs)} className="bg-lime-400 text-zinc-950 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-lime-300 transition-all">Buat Jadwal →</button>
                     </div>
                   </div>
                 );

@@ -149,13 +149,13 @@ export default function Polling() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h4 className="text-sm font-black text-zinc-100 uppercase italic tracking-tight">{poll.question}</h4>
-                  <p className="text-[8px] text-zinc-600 font-bold uppercase mt-1">
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mt-1">
                     {poll.createdBy} • {poll.createdAt && format(poll.createdAt instanceof Timestamp ? poll.createdAt.toDate() : poll.createdAt, 'd MMM yyyy', { locale: idLocale })}
                     {poll.closed && <span className="ml-2 text-red-400">• DITUTUP</span>}
                   </p>
                 </div>
                 {isAdmin && !poll.closed && (
-                  <button onClick={() => handleClosePoll(poll.id)} className="text-[8px] font-black text-zinc-600 uppercase hover:text-red-400">Tutup</button>
+                  <button onClick={() => handleClosePoll(poll.id)} className="text-[10px] font-black text-zinc-600 uppercase hover:text-red-400">Tutup</button>
                 )}
               </div>
               <div className="space-y-2">
@@ -178,14 +178,14 @@ export default function Polling() {
                         <span className={cn("text-xs font-bold", isMyVote ? "text-lime-400" : "text-zinc-300")}>{opt.text}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-black text-zinc-500">{opt.votes.length}</span>
-                          <span className="text-[8px] font-black text-zinc-600">{pct}%</span>
+                          <span className="text-[10px] font-black text-zinc-600">{pct}%</span>
                         </div>
                       </div>
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[8px] text-zinc-600 font-bold mt-3 text-right uppercase">{total} vote</p>
+              <p className="text-[10px] text-zinc-600 font-bold mt-3 text-right uppercase">{total} vote</p>
             </div>
           );
         })}

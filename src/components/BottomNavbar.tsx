@@ -41,7 +41,7 @@ export default function BottomNavbar() {
                   <span className="text-[9px] font-black uppercase tracking-widest">{item.label}</span>
                 </NavLink>
               ))}
-              <button onClick={() => { signOut(); setShowMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl text-red-400 hover:bg-red-400/10 transition-all">
+              <button onClick={() => { if (window.confirm('Yakin mau keluar?')) { signOut(); setShowMore(false); } }} className="flex flex-col items-center gap-2 p-3 rounded-2xl text-red-400 hover:bg-red-400/10 transition-all">
                 <LogOut className="w-5 h-5" />
                 <span className="text-[9px] font-black uppercase tracking-widest">Keluar</span>
               </button>
@@ -65,7 +65,7 @@ export default function BottomNavbar() {
                 }
               >
                 <item.icon className="w-5 h-5" />
-                <span className="text-[8px] font-bold uppercase tracking-wider">{item.label}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
               </NavLink>
             ))}
             <button
@@ -73,7 +73,7 @@ export default function BottomNavbar() {
               className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${showMore ? 'bg-zinc-800 text-lime-400' : 'text-zinc-500'}`}
             >
               {showMore ? <X className="w-5 h-5" /> : <MoreHorizontal className="w-5 h-5" />}
-              <span className="text-[8px] font-bold uppercase tracking-wider">Lainnya</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Lainnya</span>
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@ interface VenueCardProps {
   venue: Venue;
   onClick?: () => void;
   isActive?: boolean;
+  key?: React.Key;
 }
 
 export default function VenueCard({ venue, onClick, isActive }: VenueCardProps) {

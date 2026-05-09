@@ -197,12 +197,12 @@ export default function CalendarView() {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <span className={cn(
-                            "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest italic",
+                            "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest italic",
                             isSparing ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"
                           )}>
                             {isSparing ? 'Sparing' : 'Latihan'}
                           </span>
-                          <span className="text-[8px] uppercase font-black tracking-widest text-zinc-500">
+                          <span className="text-[10px] uppercase font-black tracking-widest text-zinc-500">
                             {format(schedule.timestamp, "EEE, d MMM", { locale: idLocale })}
                           </span>
                         </div>
