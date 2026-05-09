@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Calendar, Wallet, Settings, LogOut, Megaphone, BarChart3, MoreHorizontal, X, Package } from 'lucide-react';
+import { Home, Calendar, Wallet, Settings, LogOut, Megaphone, BarChart3, MoreHorizontal, X, Package, Trophy, Image } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function BottomNavbar() {
@@ -17,6 +17,8 @@ export default function BottomNavbar() {
   ];
 
   const moreItems = [
+    { to: '/stats', icon: Trophy, label: 'Statistik' },
+    { to: '/gallery', icon: Image, label: 'Gallery' },
     { to: '/announcements', icon: Megaphone, label: 'Pengumuman' },
     { to: '/inventory', icon: Package, label: 'Inventaris' },
     ...(isAdmin || role === 'Ketua Club' ? [{ to: '/admin', icon: Settings, label: 'Settings' }] : []),

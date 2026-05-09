@@ -8,6 +8,7 @@ import { id as idLocale } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { listenForNewSchedules } from '../lib/realtimeNotifications';
+import { BADGES, getBadgeById, calculateBadges } from '../lib/badges';
 import UserSettingsModal from '../components/UserSettingsModal';
 import CreateScheduleModal from '../components/CreateScheduleModal';
 
@@ -36,6 +37,8 @@ interface ClubUser {
   displayName?: string;
   nickname?: string;
   role?: string;
+  isSponsor?: boolean;
+  matchCount?: number;
 }
 
 export default function Dashboard() {
@@ -157,9 +160,32 @@ export default function Dashboard() {
   const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate()).getTime();
+  const tomorrowEnd = tomorrowStart + 86400000;
+  const tomorrowMatches = upcomingMatches.filter(m => m.timestamp >= tomorrowStart && m.timestamp < tomorrowEnd);
 
   return (
     <div className="flex-1 flex flex-col gap-8 pb-24 md:pb-12">
+      {/* H-1 Reminder */}
+      {tomorrowMatches.length > 0 && (
+        <div className="space-y-2 px-1 animate-in slide-in-from-top-4 duration-500">
+          {tomorrowMatches.map(match => (
+            <Link key={match.id} to={`/schedule/${match.id}`} className="block bg-lime-400/10 border border-lime-400/20 rounded-2xl p-4 group hover:border-lime-400/40 transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-lime-400/20 rounded-xl flex items-center justify-center text-lime-400 shrink-0">⏰</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black text-lime-400 uppercase tracking-widest">Reminder — Besok Main!</p>
+                  <p className="text-sm font-black text-zinc-100 uppercase italic tracking-tight truncate">{match.title}</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase">{match.location} • {format(match.timestamp, 'HH:mm')} WIB</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Payment Reminder */}
       {unpaidMatches.length > 0 && (
         <div className="mx-1 space-y-2 animate-in slide-in-from-top-4 duration-500">
@@ -267,9 +293,18 @@ export default function Dashboard() {
                         {(player.nickname || player.displayName || 'P')[0]}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'User'}</p>
-                        <p className="truncate text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'User'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-sm font-bold text-zinc-100">{player.nickname || player.displayName || 'User'}</p>
+                          {player.isSponsor && <span className="text-[9px] px-1.5 py-0.5 rounded border border-lime-400/20 bg-lime-400/10 text-lime-400 font-black">⭐ SPONSOR</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{player.role || 'User'}</span>
+                          {(player.matchCount || 0) >= 5 && <span className="text-[9px]" title="Rajin Main">🔥</span>}
+                          {(player.matchCount || 0) >= 10 && <span className="text-[9px]" title="Loyal">⚡</span>}
+                          {(player.matchCount || 0) >= 25 && <span className="text-[9px]" title="Legend">👑</span>}
+                        </div>
                       </div>
+                      {player.matchCount ? <span className="text-[10px] font-black text-zinc-600">{player.matchCount}x</span> : null}
                     </div>
                   ))
               )}

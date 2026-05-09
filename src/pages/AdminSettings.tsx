@@ -147,6 +147,14 @@ export default function AdminSettings() {
     }
   };
 
+  const toggleSponsor = async (uid: string, current: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { isSponsor: !current });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'toggle-sponsor');
+    }
+  };
+
   const filteredUsers = clubUsers.filter(u => 
     u.displayName.toLowerCase().includes(searchQuery.toLowerCase()) || 
     u.nickname.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -401,6 +409,13 @@ export default function AdminSettings() {
                       <option key={role} value={role}>{role}</option>
                     ))}
                   </select>
+                  <button
+                    onClick={() => toggleSponsor(u.uid, !!u.isSponsor)}
+                    className={`px-2 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${u.isSponsor ? 'bg-lime-400/10 border-lime-400/30 text-lime-400' : 'bg-zinc-950 border-zinc-800 text-zinc-600 hover:border-lime-400/30'}`}
+                    title={u.isSponsor ? 'Hapus Sponsor' : 'Jadikan Sponsor'}
+                  >
+                    ⭐
+                  </button>
                 </div>
               </div>
             ))}
