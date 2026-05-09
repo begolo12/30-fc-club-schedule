@@ -72,6 +72,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           // Note: FCM is disabled for now, using realtime notifications instead
           // Realtime notifications work without FCM setup and are simpler
+
+          // Online presence heartbeat
+          setDoc(doc(db, 'users', currentUser.uid), { lastSeen: Date.now(), online: true }, { merge: true });
+          const heartbeat = setInterval(() => {
+            setDoc(doc(db, 'users', currentUser.uid), { lastSeen: Date.now(), online: true }, { merge: true }).catch(() => {});
+          }, 60000);
+          const handleOffline = () => setDoc(doc(db, 'users', currentUser.uid), { online: false }, { merge: true }).catch(() => {});
+          window.addEventListener('beforeunload', handleOffline);
+          // Cleanup in return
+          (window as any).__presenceCleanup = () => { clearInterval(heartbeat); window.removeEventListener('beforeunload', handleOffline); handleOffline(); };
         } else {
           setIsAdmin(false);
           setNickname('');

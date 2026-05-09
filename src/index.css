@@ -5,6 +5,14 @@
   --color-lime-400: #a3e635;
 }
 
+/* Page transition */
+main { animation: pageIn 0.25s ease-out; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Micro-animations - GPU accelerated, low-end friendly */
+.btn-press:active { transform: scale(0.96); }
+@media (prefers-reduced-motion: reduce) { main, .btn-press:active { animation: none; transform: none; } }
+
 /* Custom Scrollbar for better dark theme appearance */
 ::-webkit-scrollbar {
   width: 8px;

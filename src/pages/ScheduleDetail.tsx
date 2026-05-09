@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { format, isBefore, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Calendar, MapPin, Users, Send, ArrowLeft, Trash2, Edit2, QrCode, CheckCircle2, Banknote, Clock, Shield, UserMinus } from 'lucide-react';
+import { Calendar, MapPin, Users, Send, ArrowLeft, Trash2, Edit2, QrCode, CheckCircle2, Banknote, Clock, Shield, UserMinus, Share2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
@@ -455,6 +455,19 @@ export default function ScheduleDetail() {
               📋 Duplikat ke Minggu Depan
             </button>
           )}
+
+          {/* Share to WhatsApp */}
+          <button
+            onClick={() => {
+              const d = format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale });
+              const t = format(schedule.timestamp, 'HH:mm');
+              const text = `⚽ *${schedule.title}*\n\n📅 ${d}\n⏰ ${t} WIB\n📍 ${schedule.location}\n💰 Iuran: Rp ${(schedule.feePerPlayer || 0).toLocaleString('id-ID')}/orang\n\n👉 Join sekarang: ${window.location.href}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}
+            className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-4 h-4" /> Share ke WhatsApp
+          </button>
 
           {/* Join Actions */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 shadow-xl sticky bottom-20 md:static z-20">

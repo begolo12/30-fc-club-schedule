@@ -40,6 +40,8 @@ interface ClubUser {
   role?: string;
   isSponsor?: boolean;
   matchCount?: number;
+  online?: boolean;
+  lastSeen?: number;
 }
 
 export default function Dashboard() {
@@ -372,8 +374,11 @@ export default function Dashboard() {
                   })
                   .map((player) => (
                     <div key={player.id} className="flex items-center gap-3 border-b border-zinc-800/80 px-5 py-3 last:border-b-0">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 font-black uppercase text-lime-300">
+                      <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 font-black uppercase text-lime-300">
                         {(player.nickname || player.displayName || 'P')[0]}
+                        {player.online && player.lastSeen && (Date.now() - player.lastSeen < 120000) && (
+                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-lime-400 border-2 border-zinc-900 rounded-full" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
