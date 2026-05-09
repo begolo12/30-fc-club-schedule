@@ -44,7 +44,7 @@ export default function Login() {
       <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[2rem] shadow-2xl relative overflow-hidden text-center transition-all duration-500">
         {/* Background Decorative Element */}
         <div className="relative z-10 flex flex-col items-center">
-          <img src="/logo.jpeg" alt="Thirty FC" className="w-20 h-20 rounded-[1.25rem] object-cover mb-8 transform -rotate-6 shadow-[0_0_30px_rgba(163,230,53,0.3)]" />
+          <img src="/logo.png" alt="Thirty FC" className="w-20 h-20 rounded-[1.25rem] object-cover mb-8 transform -rotate-6 shadow-[0_0_30px_rgba(163,230,53,0.3)]" />
           
           <h1 className="text-3xl md:text-4xl font-black italic mb-3 tracking-tighter uppercase text-zinc-100">Thirty FC Club</h1>
           <p className="text-zinc-500 mb-10 text-sm max-w-xs leading-relaxed">

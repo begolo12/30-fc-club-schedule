@@ -34,12 +34,12 @@ export default function Sidebar() {
       <div className="p-6 flex items-center justify-between">
         {!isCollapsed && (
           <Link to="/" className="flex items-center gap-3 animate-in fade-in duration-300">
-            <img src="/logo.jpeg" alt="Thirty FC" className="w-8 h-8 rounded-lg object-cover" />
+            <img src="/logo.png" alt="Thirty FC" className="w-8 h-8 rounded-lg object-cover" />
             <h1 className="text-lg font-bold tracking-tight uppercase">Thirty FC</h1>
           </Link>
         )}
         {isCollapsed && (
-          <img src="/logo.jpeg" alt="Thirty FC" className="w-8 h-8 rounded-lg object-cover mx-auto" />
+          <img src="/logo.png" alt="Thirty FC" className="w-8 h-8 rounded-lg object-cover mx-auto" />
         )}
       </div>
 
