@@ -456,17 +456,86 @@ export default function ScheduleDetail() {
             </button>
           )}
 
-          {/* Share to WhatsApp */}
+          {/* Share Banner */}
           <button
-            onClick={() => {
-              const d = format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale });
-              const t = format(schedule.timestamp, 'HH:mm');
-              const text = `⚽ *${schedule.title}*\n\n📅 ${d}\n⏰ ${t} WIB\n📍 ${schedule.location}\n💰 Iuran: Rp ${(schedule.feePerPlayer || 0).toLocaleString('id-ID')}/orang\n\n👉 Join sekarang: ${window.location.href}`;
-              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            onClick={async () => {
+              const w = 1080, h = 1920;
+              const canvas = document.createElement('canvas');
+              canvas.width = w; canvas.height = h;
+              const ctx = canvas.getContext('2d')!;
+              
+              // Background gradient
+              const grad = ctx.createLinearGradient(0, 0, 0, h);
+              grad.addColorStop(0, '#09090b');
+              grad.addColorStop(0.5, '#1a1a1f');
+              grad.addColorStop(1, '#09090b');
+              ctx.fillStyle = grad;
+              ctx.fillRect(0, 0, w, h);
+
+              // Accent line
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, 400, 6, 200);
+
+              // Club name
+              ctx.fillStyle = '#a3e635';
+              ctx.font = 'bold 42px sans-serif';
+              ctx.fillText('THIRTY FC', 80, 340);
+
+              // Title
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold italic 72px sans-serif';
+              const titleLines = schedule.title.length > 18 ? [schedule.title.slice(0, 18), schedule.title.slice(18)] : [schedule.title];
+              titleLines.forEach((line, i) => ctx.fillText(line.toUpperCase(), 120, 500 + i * 90));
+
+              // Info
+              const infoY = 500 + titleLines.length * 90 + 80;
+              ctx.fillStyle = '#a1a1aa';
+              ctx.font = 'bold 48px sans-serif';
+              ctx.fillText(`📅  ${format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale })}`, 120, infoY);
+              ctx.fillText(`⏰  ${format(schedule.timestamp, 'HH:mm')} WIB`, 120, infoY + 80);
+              ctx.fillText(`📍  ${schedule.location}`, 120, infoY + 160);
+              ctx.fillText(`💰  Rp ${(schedule.feePerPlayer || 0).toLocaleString('id-ID')} / orang`, 120, infoY + 240);
+
+              // Participants count
+              ctx.fillStyle = '#a3e635';
+              ctx.font = 'bold 120px sans-serif';
+              ctx.fillText(`${participants.length}`, 120, infoY + 440);
+              ctx.fillStyle = '#71717a';
+              ctx.font = 'bold 42px sans-serif';
+              ctx.fillText('user sudah join', 280, infoY + 440);
+
+              // Footer CTA
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, h - 280, w - 160, 120);
+              ctx.fillStyle = '#09090b';
+              ctx.font = 'bold 48px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('AYO IKUT MAIN! ⚽', w / 2, h - 205);
+              ctx.textAlign = 'left';
+
+              // Watermark
+              ctx.fillStyle = '#3f3f46';
+              ctx.font = '32px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('thirty-fc.vercel.app', w / 2, h - 100);
+
+              // Download/share
+              canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                const file = new File([blob], 'thirty-fc-match.png', { type: 'image/png' });
+                if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                  await navigator.share({ files: [file], title: schedule.title });
+                } else {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url; a.download = 'thirty-fc-match.png'; a.click();
+                  URL.revokeObjectURL(url);
+                }
+              }, 'image/png');
             }}
             className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
           >
-            <Share2 className="w-4 h-4" /> Share ke WhatsApp
+            <Share2 className="w-4 h-4" /> Share Banner
           </button>
 
           {/* Join Actions */}
