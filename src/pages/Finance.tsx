@@ -356,24 +356,26 @@ export default function Finance() {
         </div>
         
         {isAdmin && (
-          <div className="flex items-center gap-2">
-            <input 
-              type="month" 
-              value={exportMonth}
-              onChange={(e) => setExportMonth(e.target.value)}
-              className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-lime-400/50 [color-scheme:dark]"
-            />
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <input 
+                type="month" 
+                value={exportMonth}
+                onChange={(e) => setExportMonth(e.target.value)}
+                className="flex-1 bg-zinc-950 border border-zinc-800 text-zinc-100 px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-lime-400/50 [color-scheme:dark]"
+              />
+              <button 
+                onClick={exportToPDF}
+                className="flex items-center gap-2 bg-lime-400 text-zinc-950 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" /> PDF
+              </button>
+            </div>
             <button 
               onClick={() => setShowExpenseForm(!showExpenseForm)}
-              className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-red-500/20"
+              className="w-full flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-red-500/20"
             >
-              <TrendingDown className="w-3.5 h-3.5" /> Pengeluaran
-            </button>
-            <button 
-              onClick={exportToPDF}
-              className="flex items-center gap-2 bg-lime-400 text-zinc-950 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-            >
-              <Download className="w-3.5 h-3.5" /> PDF
+              <TrendingDown className="w-3.5 h-3.5" /> {showExpenseForm ? 'Tutup Form' : 'Tambah Pengeluaran'}
             </button>
           </div>
         )}
