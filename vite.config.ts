@@ -27,19 +27,19 @@ export default defineConfig(({ mode }) => {
           orientation: 'portrait',
           icons: [
             {
-              src: 'icons/icon-192.png',
+              src: 'logo.jpeg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/jpeg'
             },
             {
-              src: 'icons/icon-512.png',
+              src: 'logo.jpeg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/jpeg'
             },
             {
-              src: 'icons/icon-512.png',
+              src: 'logo.jpeg',
               sizes: '512x512',
-              type: 'image/png',
+              type: 'image/jpeg',
               purpose: 'any maskable'
             }
           ]
