@@ -392,7 +392,7 @@ export default function ScheduleDetail() {
           </div>
 
           {/* Admin: Close Match */}
-          {isAdmin && schedule.status === 'upcoming' && (
+          {isAdmin && schedule.status !== 'completed' && schedule.status !== 'cancelled' && (
             <button onClick={handleCloseMatch} className="w-full bg-lime-400 hover:bg-lime-300 text-zinc-950 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-lime-400/10">
               ✓ Selesaikan Pertandingan
             </button>
