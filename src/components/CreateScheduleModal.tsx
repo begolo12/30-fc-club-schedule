@@ -39,48 +39,6 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
   const [formattedFeePerPlayer, setFormattedFeePerPlayer] = useState('0');
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
 
-  if (!isOpen) return null;
-
-  const parseNumber = (val: string) => parseInt(val.replace(/\./g, '')) || 0;
-  const formatNumber = (num: number) => num.toLocaleString('id-ID');
-
-  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost' | 'feePerPlayer') => {
-    const numeric = parseNumber(val);
-    setFormData(prev => ({ ...prev, [field]: numeric }));
-    if (field === 'fieldCost') setFormattedFieldCost(formatNumber(numeric));
-    else if (field === 'dpCost') setFormattedDpCost(formatNumber(numeric));
-    else setFormattedFeePerPlayer(formatNumber(numeric));
-  };
-
-  const addOtherCost = () => {
-    setFormData(prev => ({
-      ...prev,
-      otherCosts: [...prev.otherCosts, { description: '', amount: 0 }]
-    }));
-  };
-
-  const updateOtherCost = (index: number, field: keyof OtherCost, value: string) => {
-    const newCosts = [...formData.otherCosts];
-    if (field === 'amount') {
-      newCosts[index].amount = parseNumber(value);
-    } else {
-      newCosts[index].description = value;
-    }
-    setFormData(prev => ({ ...prev, otherCosts: newCosts }));
-  };
-
-  const removeOtherCost = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      otherCosts: prev.otherCosts.filter((_, i) => i !== index)
-    }));
-  };
-
-  const calculateTotal = () => {
-    const others = formData.otherCosts.reduce((acc, curr) => acc + curr.amount, 0);
-    return formData.fieldCost + others;
-  };
-
   useEffect(() => {
     const fetchUsers = async () => {
       if (!canAssignResponsible) return;
@@ -98,6 +56,39 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
     };
     fetchUsers();
   }, [canAssignResponsible]);
+
+  if (!isOpen) return null;
+
+  const parseNumber = (val: string) => parseInt(val.replace(/\./g, '')) || 0;
+  const formatNumber = (num: number) => num.toLocaleString('id-ID');
+
+  const handleCostChange = (val: string, field: 'fieldCost' | 'dpCost' | 'feePerPlayer') => {
+    const numeric = parseNumber(val);
+    setFormData(prev => ({ ...prev, [field]: numeric }));
+    if (field === 'fieldCost') setFormattedFieldCost(formatNumber(numeric));
+    else if (field === 'dpCost') setFormattedDpCost(formatNumber(numeric));
+    else setFormattedFeePerPlayer(formatNumber(numeric));
+  };
+
+  const addOtherCost = () => {
+    setFormData(prev => ({ ...prev, otherCosts: [...prev.otherCosts, { description: '', amount: 0 }] }));
+  };
+
+  const updateOtherCost = (index: number, field: keyof OtherCost, value: string) => {
+    const newCosts = [...formData.otherCosts];
+    if (field === 'amount') newCosts[index].amount = parseNumber(value);
+    else newCosts[index].description = value;
+    setFormData(prev => ({ ...prev, otherCosts: newCosts }));
+  };
+
+  const removeOtherCost = (index: number) => {
+    setFormData(prev => ({ ...prev, otherCosts: prev.otherCosts.filter((_, i) => i !== index) }));
+  };
+
+  const calculateTotal = () => {
+    const others = formData.otherCosts.reduce((acc, curr) => acc + curr.amount, 0);
+    return formData.fieldCost + others;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
