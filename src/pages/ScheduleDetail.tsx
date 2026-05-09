@@ -464,124 +464,131 @@ export default function ScheduleDetail() {
               canvas.width = w; canvas.height = h;
               const ctx = canvas.getContext('2d')!;
 
-              // === BOLD YELLOW/BLUE BACKGROUND ===
-              ctx.fillStyle = '#facc15';
+              // === BACKGROUND ===
+              ctx.fillStyle = '#0f172a';
               ctx.fillRect(0, 0, w, h);
 
-              // Blue curved shape top-right
-              ctx.fillStyle = '#1e3a5f';
-              ctx.beginPath();
-              ctx.moveTo(w * 0.3, 0);
-              ctx.lineTo(w, 0);
-              ctx.lineTo(w, h * 0.55);
-              ctx.quadraticCurveTo(w * 0.5, h * 0.45, w * 0.3, 0);
-              ctx.fill();
+              // Top gradient overlay
+              const topGrad = ctx.createLinearGradient(0, 0, 0, 600);
+              topGrad.addColorStop(0, '#1e3a5f');
+              topGrad.addColorStop(1, '#0f172a');
+              ctx.fillStyle = topGrad;
+              ctx.fillRect(0, 0, w, 600);
 
-              // White card area
+              // Accent stripe
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(0, 0, w, 12);
+
+              // === HEADER ===
+              ctx.fillStyle = '#a3e635';
+              ctx.font = '900 36px Arial, sans-serif';
+              ctx.fillText('THIRTY FC', 80, 80);
+              ctx.fillStyle = '#64748b';
+              ctx.font = '600 28px Arial, sans-serif';
+              ctx.fillText('MATCH INVITATION', 80, 120);
+
+              // === TITLE SECTION ===
               ctx.fillStyle = '#ffffff';
-              const cardX = 60, cardY = h * 0.5, cardW = w - 120, cardH = 650;
-              ctx.beginPath();
-              ctx.roundRect(cardX, cardY, cardW, cardH, 40);
-              ctx.fill();
-
-              // Shadow for card
-              ctx.shadowColor = 'rgba(0,0,0,0.1)';
-              ctx.shadowBlur = 30;
-              ctx.fillStyle = '#ffffff';
-              ctx.beginPath();
-              ctx.roundRect(cardX, cardY, cardW, cardH, 40);
-              ctx.fill();
-              ctx.shadowBlur = 0;
-
-              // === TITLE - Big bold on blue area ===
-              ctx.fillStyle = '#facc15';
-              ctx.font = '900 100px Arial, sans-serif';
-              ctx.textAlign = 'right';
+              ctx.font = '900 86px Arial, sans-serif';
               const words = schedule.title.toUpperCase().split(' ');
-              let line = '', ly = 250;
+              let line = '', ly = 260;
               words.forEach(word => {
                 const test = line + word + ' ';
-                if (ctx.measureText(test).width > 650 && line) {
-                  ctx.fillText(line.trim(), w - 80, ly); line = word + ' '; ly += 120;
+                if (ctx.measureText(test).width > 920 && line) {
+                  ctx.fillText(line.trim(), 80, ly); line = word + ' '; ly += 105;
                 } else { line = test; }
               });
-              ctx.fillText(line.trim(), w - 80, ly);
-              ctx.textAlign = 'left';
+              ctx.fillText(line.trim(), 80, ly);
 
-              // Club name top-left
-              ctx.fillStyle = '#1e3a5f';
-              ctx.font = '900 48px Arial, sans-serif';
-              ctx.fillText('THIRTY FC', 80, 100);
+              // === INFO SECTION (cards on dark bg) ===
+              const infoY = ly + 120;
 
-              // Decorative dots/sparkles on blue
-              ctx.fillStyle = 'rgba(250, 204, 21, 0.3)';
-              for (let i = 0; i < 8; i++) {
-                const dx = 600 + Math.random() * 400;
-                const dy = 100 + Math.random() * 300;
-                ctx.fillRect(dx, dy, 20, 20);
-              }
-
-              // === INFO CARDS inside white card ===
-              const infoX = cardX + 60, infoStartY = cardY + 80;
-
-              // Location pill
-              ctx.fillStyle = '#fee2e2';
-              ctx.beginPath(); ctx.roundRect(infoX, infoStartY, cardW - 120, 90, 20); ctx.fill();
-              ctx.fillStyle = '#dc2626';
-              ctx.font = '800 38px Arial, sans-serif';
-              ctx.fillText(schedule.location, infoX + 70, infoStartY + 58);
-              ctx.beginPath(); ctx.arc(infoX + 35, infoStartY + 45, 18, 0, Math.PI * 2); ctx.fill();
-
-              // Time pill
-              ctx.fillStyle = '#fef3c7';
-              ctx.beginPath(); ctx.roundRect(infoX, infoStartY + 120, cardW - 120, 90, 20); ctx.fill();
-              ctx.fillStyle = '#d97706';
-              ctx.font = '800 38px Arial, sans-serif';
-              ctx.fillText(format(schedule.timestamp, 'HH:mm') + ' WIB', infoX + 70, infoStartY + 178);
-              ctx.beginPath(); ctx.arc(infoX + 35, infoStartY + 165, 18, 0, Math.PI * 2); ctx.fill();
-
-              // Date pill
-              ctx.fillStyle = '#dbeafe';
-              ctx.beginPath(); ctx.roundRect(infoX, infoStartY + 240, cardW - 120, 90, 20); ctx.fill();
-              ctx.fillStyle = '#2563eb';
-              ctx.font = '800 38px Arial, sans-serif';
-              ctx.fillText(format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale }), infoX + 70, infoStartY + 298);
-              ctx.beginPath(); ctx.arc(infoX + 35, infoStartY + 285, 18, 0, Math.PI * 2); ctx.fill();
-
-              // Fee - big bold
-              ctx.fillStyle = '#1e3a5f';
-              ctx.font = '900 44px Arial, sans-serif';
-              ctx.fillText('IURAN', infoX, infoStartY + 430);
-              ctx.fillStyle = '#dc2626';
-              ctx.font = '900 96px Arial, sans-serif';
-              ctx.fillText('Rp ' + ((schedule.feePerPlayer || 0) / 1000).toFixed(0) + 'K', infoX, infoStartY + 540);
-
-              // === BOTTOM SECTION ===
-              // Participants
-              ctx.fillStyle = '#1e3a5f';
-              ctx.font = '900 140px Arial, sans-serif';
-              ctx.textAlign = 'center';
-              ctx.fillText(String(participants.length), w / 2, h - 380);
-              ctx.font = '700 40px Arial, sans-serif';
-              ctx.fillStyle = '#71717a';
-              ctx.fillText('user sudah join', w / 2, h - 310);
-              ctx.textAlign = 'left';
-
-              // CTA Button
-              ctx.fillStyle = '#1e3a5f';
-              ctx.beginPath(); ctx.roundRect(120, h - 250, w - 240, 120, 60); ctx.fill();
+              // Date card
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(80, infoY, w - 160, 140);
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, infoY, 8, 140);
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '700 30px Arial, sans-serif';
+              ctx.fillText('TANGGAL', 120, infoY + 45);
               ctx.fillStyle = '#ffffff';
-              ctx.font = '900 44px Arial, sans-serif';
+              ctx.font = '900 48px Arial, sans-serif';
+              ctx.fillText(format(schedule.timestamp, 'EEEE, d MMMM yyyy', { locale: idLocale }), 120, infoY + 105);
+
+              // Time card
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(80, infoY + 160, (w - 180) / 2, 140);
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, infoY + 160, 8, 140);
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '700 30px Arial, sans-serif';
+              ctx.fillText('WAKTU', 120, infoY + 205);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = '900 52px Arial, sans-serif';
+              ctx.fillText(format(schedule.timestamp, 'HH:mm') + ' WIB', 120, infoY + 270);
+
+              // Fee card
+              const feeX = 80 + (w - 180) / 2 + 20;
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(feeX, infoY + 160, (w - 180) / 2, 140);
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(feeX, infoY + 160, 8, 140);
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '700 30px Arial, sans-serif';
+              ctx.fillText('IURAN', feeX + 40, infoY + 205);
+              ctx.fillStyle = '#a3e635';
+              ctx.font = '900 52px Arial, sans-serif';
+              ctx.fillText('Rp ' + (schedule.feePerPlayer || 0).toLocaleString('id-ID'), feeX + 40, infoY + 270);
+
+              // Location card
+              ctx.fillStyle = '#1e293b';
+              ctx.fillRect(80, infoY + 320, w - 160, 140);
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(80, infoY + 320, 8, 140);
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '700 30px Arial, sans-serif';
+              ctx.fillText('LOKASI', 120, infoY + 365);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = '900 48px Arial, sans-serif';
+              ctx.fillText(schedule.location, 120, infoY + 425);
+
+              // === PARTICIPANTS SECTION ===
+              const partY = infoY + 540;
+              ctx.fillStyle = '#a3e635';
+              ctx.font = '900 120px Arial, sans-serif';
+              ctx.fillText(String(participants.length), 80, partY);
+              const numW = ctx.measureText(String(participants.length)).width;
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '700 36px Arial, sans-serif';
+              ctx.fillText('USER', 100 + numW, partY - 40);
+              ctx.fillText('SUDAH JOIN', 100 + numW, partY);
+
+              // Slot info
+              ctx.fillStyle = '#64748b';
+              ctx.font = '600 32px Arial, sans-serif';
+              ctx.fillText('Slot terbatas — segera daftar!', 80, partY + 50);
+
+              // === CTA BUTTON ===
+              ctx.fillStyle = '#a3e635';
+              ctx.beginPath();
+              ctx.roundRect(80, h - 280, w - 160, 120, 60);
+              ctx.fill();
+              ctx.fillStyle = '#0f172a';
+              ctx.font = '900 46px Arial, sans-serif';
               ctx.textAlign = 'center';
-              ctx.fillText('AYO IKUT MAIN!', w / 2, h - 175);
+              ctx.fillText('AYO IKUT MAIN!', w / 2, h - 205);
               ctx.textAlign = 'left';
 
-              // Watermark
-              ctx.fillStyle = '#a1a1aa';
+              // === FOOTER ===
+              ctx.fillStyle = '#475569';
               ctx.font = '500 28px Arial, sans-serif';
               ctx.textAlign = 'center';
-              ctx.fillText('@thirtyfcclub', w / 2, h - 60);
+              ctx.fillText('@thirtyfcclub  •  thirty-fc.vercel.app', w / 2, h - 100);
               ctx.textAlign = 'left';
+
+              // Bottom accent
+              ctx.fillStyle = '#a3e635';
+              ctx.fillRect(0, h - 12, w, 12);
 
               // Download
               const dataUrl = canvas.toDataURL('image/png');
