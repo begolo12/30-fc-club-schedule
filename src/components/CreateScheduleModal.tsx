@@ -139,6 +139,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
           title: '⚽ Jadwal Baru!',
           message: `${formData.title} — ${formattedDate}`,
           type: 'match',
+          link: '/calendar',
           read: false,
           createdAt: Date.now(),
         }).catch(() => {});

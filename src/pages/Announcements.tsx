@@ -50,6 +50,7 @@ export default function Announcements() {
             title: `📢 ${title.trim()}`,
             message: message.trim(),
             type: 'announcement',
+            link: '/announcements',
             read: false,
             createdAt: Date.now(),
           }).catch(() => {});

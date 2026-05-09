@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, onSnapshot, limit, updateDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Bell, X } from 'lucide-react';
@@ -12,12 +13,14 @@ interface Notification {
   title: string;
   message: string;
   type: 'match' | 'payment' | 'announcement' | 'general';
+  link?: string;
   read: boolean;
   createdAt: number;
 }
 
 export default function NotificationBell() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -43,6 +46,21 @@ export default function NotificationBell() {
       batch.update(doc(db, 'users', user.uid, 'notifications', n.id), { read: true });
     });
     await batch.commit();
+  };
+
+  const handleClick = (n: Notification) => {
+    setIsOpen(false);
+    if (n.link) {
+      navigate(n.link);
+    } else {
+      // Fallback based on type
+      switch (n.type) {
+        case 'match': navigate('/calendar'); break;
+        case 'payment': navigate('/finance'); break;
+        case 'announcement': navigate('/announcements'); break;
+        case 'general': navigate('/polling'); break;
+      }
+    }
   };
 
   const getIcon = (type: string) => {
@@ -84,7 +102,11 @@ export default function NotificationBell() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Belum ada notifikasi</p>
                 </div>
               ) : notifications.map(n => (
-                <div key={n.id} className={cn("px-4 py-3 border-b border-zinc-800/50 last:border-b-0", !n.read && "bg-lime-400/5")}>
+                <button
+                  key={n.id}
+                  onClick={() => handleClick(n)}
+                  className={cn("w-full text-left px-4 py-3 border-b border-zinc-800/50 last:border-b-0 hover:bg-zinc-800/50 transition-all", !n.read && "bg-lime-400/5")}
+                >
                   <div className="flex items-start gap-3">
                     <span className="text-lg">{getIcon(n.type)}</span>
                     <div className="flex-1 min-w-0">
@@ -92,8 +114,9 @@ export default function NotificationBell() {
                       <p className="text-[10px] text-zinc-500 mt-0.5 line-clamp-2">{n.message}</p>
                       <p className="text-[9px] text-zinc-600 mt-1">{format(n.createdAt, 'd MMM, HH:mm', { locale: idLocale })}</p>
                     </div>
+                    <span className="text-[9px] text-zinc-700 mt-1">→</span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>

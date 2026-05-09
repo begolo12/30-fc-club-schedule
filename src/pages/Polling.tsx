@@ -51,6 +51,7 @@ export default function Polling() {
             title: '📊 Polling Baru!',
             message: question.trim(),
             type: 'general',
+            link: '/polling',
             read: false,
             createdAt: Date.now(),
           }).catch(() => {});

@@ -279,6 +279,7 @@ export default function Finance() {
             title: '💰 Pembayaran Masuk',
             message: `${nickname || user.displayName} bayar via ${methodLabel} — perlu approval`,
             type: 'payment',
+            link: '/finance',
             read: false,
             createdAt: Date.now(),
           }).catch(() => {});
@@ -326,6 +327,7 @@ export default function Finance() {
         title: '✅ Pembayaran Dikonfirmasi',
         message: `Iuran untuk "${p.matchTitle}" sudah lunas. Terima kasih!`,
         type: 'payment',
+        link: '/finance',
         read: false,
         createdAt: Date.now(),
       }).catch(() => {});
