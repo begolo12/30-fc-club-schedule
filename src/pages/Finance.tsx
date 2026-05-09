@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, getDocs, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, doc, setDoc, getDoc, getDocs, where, collectionGroup, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save, FileText, X, Check, ArrowLeft, QrCode, Banknote } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save, FileText, X, Check, ArrowLeft, QrCode, Banknote, Undo2 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
@@ -17,6 +17,7 @@ interface Transaction {
   type: 'income' | 'expense';
   description: string;
   userName?: string;
+  userId?: string;
   timestamp: number;
   matchId?: string;
 }
@@ -338,6 +339,27 @@ export default function Finance() {
     }
   };
 
+  const handleUndoPayment = async (tx: Transaction) => {
+    if (!isAdmin || !tx.matchId || !tx.userId) return;
+    setConfirmDialog({
+      title: 'Batalkan Pembayaran',
+      message: `Undo pembayaran ${tx.userName || ''} untuk "${tx.description}"? Data kas akan dikembalikan.`,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          // Revert participant status to unpaid
+          await setDoc(doc(db, 'schedules', tx.matchId!, 'participants', tx.userId!), {
+            paymentStatus: 'unpaid'
+          }, { merge: true });
+          // Delete the finance transaction
+          await deleteDoc(doc(db, 'finance', tx.id));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, 'undo-payment');
+        }
+      }
+    });
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-6 pb-24 md:pb-12">
       <header className="flex flex-col gap-4">
@@ -558,10 +580,15 @@ export default function Finance() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-center gap-2">
                   <span className={`text-sm font-black italic tracking-tighter ${tx.type === 'income' ? 'text-lime-400' : 'text-red-400'}`}>
                     {tx.type === 'income' ? '+' : '-'} {tx.amount.toLocaleString('id-ID')}
                   </span>
+                  {isAdmin && tx.type === 'income' && tx.matchId && tx.userId && (
+                    <button onClick={() => handleUndoPayment(tx)} className="p-1.5 rounded-lg text-zinc-600 hover:text-orange-400 hover:bg-orange-400/10 transition-all opacity-0 group-hover:opacity-100" title="Batalkan">
+                      <Undo2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))
