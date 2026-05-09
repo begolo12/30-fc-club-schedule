@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { Camera, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Heart } from 'lucide-react';
+import { Camera, X, Image as ImageIcon, Sparkles, ChevronLeft, ChevronRight, ChevronDown, Heart, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface GalleryPost {
@@ -18,7 +18,7 @@ interface GalleryPost {
 }
 
 export default function Gallery() {
-  const { user, nickname } = useAuth();
+  const { user, nickname, isAdmin } = useAuth();
   const [posts, setPosts] = useState<GalleryPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
@@ -93,6 +93,16 @@ export default function Gallery() {
       handleFirestoreError(err, OperationType.WRITE, 'gallery');
     }
     setUploading(false);
+  };
+
+  const handleDelete = async (post: GalleryPost) => {
+    if (!window.confirm('Hapus foto ini?')) return;
+    try {
+      await deleteDoc(doc(db, 'gallery', post.id));
+      if (lightbox?.id === post.id) setLightbox(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, 'gallery');
+    }
   };
 
   // Highlights: latest 5
@@ -297,9 +307,16 @@ export default function Gallery() {
             <img src={lightbox.imageUrl} alt={lightbox.caption} className="w-full max-h-[70vh] object-contain rounded-2xl" />
             <div className="mt-4 px-2">
               {lightbox.caption && <p className="text-sm font-bold text-zinc-200">{lightbox.caption}</p>}
-              <p className="text-[10px] text-zinc-500 font-bold uppercase mt-1">
-                {lightbox.userName} • {format(getPostDate(lightbox), 'd MMM yyyy, HH:mm', { locale: idLocale })}
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase">
+                  {lightbox.userName} • {format(getPostDate(lightbox), 'd MMM yyyy, HH:mm', { locale: idLocale })}
+                </p>
+                {(isAdmin || lightbox.userId === user?.uid) && (
+                  <button onClick={() => handleDelete(lightbox)} className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
