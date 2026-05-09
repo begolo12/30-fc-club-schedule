@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, addDoc, updateDoc, doc, getDocs, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -42,6 +42,19 @@ export default function Polling() {
         createdBy: nickname || user?.displayName || 'Admin',
         createdAt: serverTimestamp(),
         closed: false
+      });
+      // Notify all users
+      const usersSnap = await getDocs(collection(db, 'users'));
+      usersSnap.forEach(u => {
+        if (u.id !== user?.uid) {
+          addDoc(collection(db, 'users', u.id, 'notifications'), {
+            title: '📊 Polling Baru!',
+            message: question.trim(),
+            type: 'general',
+            read: false,
+            createdAt: Date.now(),
+          }).catch(() => {});
+        }
       });
       setQuestion('');
       setOptions(['', '']);

@@ -269,6 +269,21 @@ export default function Finance() {
       await setDoc(doc(db, 'schedules', matchId, 'participants', user.uid), {
         paymentStatus: method
       }, { merge: true });
+      // Notify admins
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const methodLabel = method === 'pending_qris' ? 'QRIS' : 'Tunai';
+      usersSnap.forEach(u => {
+        const data = u.data();
+        if (data.role === 'Admin' || data.role === 'Ketua Club' || data.role === 'Kasir') {
+          setDoc(doc(collection(db, 'users', u.id, 'notifications')), {
+            title: '💰 Pembayaran Masuk',
+            message: `${nickname || user.displayName} bayar via ${methodLabel} — perlu approval`,
+            type: 'payment',
+            read: false,
+            createdAt: Date.now(),
+          }).catch(() => {});
+        }
+      });
       setIsPaymentModalOpen(false);
       setSelectedMatch(null);
       setShowQrisImage(false);
@@ -306,6 +321,14 @@ export default function Finance() {
         matchId: p.matchId,
         timestamp: Date.now()
       });
+      // Notify user that payment is confirmed
+      setDoc(doc(collection(db, 'users', p.userId, 'notifications')), {
+        title: '✅ Pembayaran Dikonfirmasi',
+        message: `Iuran untuk "${p.matchTitle}" sudah lunas. Terima kasih!`,
+        type: 'payment',
+        read: false,
+        createdAt: Date.now(),
+      }).catch(() => {});
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, 'approval');
     }

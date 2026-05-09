@@ -132,6 +132,18 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
         requireInteraction: false
       });
 
+      // Broadcast to all users' notification inbox
+      const usersSnap = await getDocs(collection(db, 'users'));
+      usersSnap.forEach(u => {
+        addDoc(collection(db, 'users', u.id, 'notifications'), {
+          title: '⚽ Jadwal Baru!',
+          message: `${formData.title} — ${formattedDate}`,
+          type: 'match',
+          read: false,
+          createdAt: Date.now(),
+        }).catch(() => {});
+      });
+
       onClose();
       setFormData({
         title: '',
