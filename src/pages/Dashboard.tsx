@@ -403,20 +403,26 @@ export default function Dashboard() {
 
       {/* Compact Stats Grid */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+        <Link
+          to="/finance?tab=kas"
+          className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 hover:bg-zinc-900 transition-all group active:scale-[0.98]"
+        >
           <Wallet className="w-5 h-5 text-lime-400 mb-2 opacity-50" />
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Saldo Kas</p>
           <h3 className="text-xs font-black italic text-zinc-100">Rp {balance.toLocaleString('id-ID')}</h3>
-        </div>
-        <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center">
+        </Link>
+        <Link
+          to="/calendar?view=list"
+          className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-blue-400/40 hover:bg-zinc-900 transition-all group active:scale-[0.98]"
+        >
           <Trophy className="w-5 h-5 text-blue-400 mb-2 opacity-50" />
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">Jadwal</p>
           <h3 className="text-xs font-black italic text-zinc-100">{upcomingMatches.length}</h3>
-        </div>
+        </Link>
         <button
           type="button"
           onClick={() => setIsPlayersOpen(true)}
-          className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 transition-all"
+          className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-4 flex flex-col items-center text-center hover:border-lime-400/40 transition-all cursor-pointer active:scale-[0.98]"
         >
           <Users className="w-5 h-5 text-orange-400 mb-2 opacity-50" />
           <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">User</p>
