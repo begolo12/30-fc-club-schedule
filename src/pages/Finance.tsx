@@ -7,23 +7,31 @@ import { Wallet, TrendingUp, TrendingDown, Clock, User, Download, Settings, Save
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
+import { useSearchParams } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { venues } from '../data/venues';
 
 interface Transaction {
   id: string;
   amount: number;
   type: 'income' | 'expense';
+  category?: 'sponsor' | 'field_fee' | 'other' | 'manual';
   description: string;
   userName?: string;
   userId?: string;
   timestamp: number;
   matchId?: string;
+  fieldId?: string;
+  fieldName?: string;
+  contributorName?: string;
+  friendCount?: number;
 }
 
 export default function Finance() {
   const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
@@ -103,7 +111,7 @@ export default function Finance() {
 
     const tableData = filtered.map(t => [
       format(t.timestamp, 'dd/MM/yyyy'),
-      t.description,
+      getTransactionLabel(t),
       t.userName || '-',
       t.type === 'income' ? `Rp ${t.amount.toLocaleString('id-ID')}` : '-',
       t.type === 'expense' ? `Rp ${t.amount.toLocaleString('id-ID')}` : '-'
@@ -136,13 +144,25 @@ export default function Finance() {
   const [showQrisImage, setShowQrisImage] = useState(false);
   const [qrisUrl, setQrisUrl] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [expenseDesc, setExpenseDesc] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
+  const [showTxForm, setShowTxForm] = useState(false);
+  const [txType, setTxType] = useState<'income' | 'expense'>('expense');
+  const [incomeCategory, setIncomeCategory] = useState<'sponsor' | 'field_fee' | 'other'>('sponsor');
+  const [txDesc, setTxDesc] = useState('');
+  const [txAmount, setTxAmount] = useState('');
+  const [fieldId, setFieldId] = useState(venues[0]?.id || '');
+  const [contributorName, setContributorName] = useState('');
+  const [friendCount, setFriendCount] = useState('1');
   const [financeTab, setFinanceTab] = useState<'kas' | 'piutang' | 'riwayat' | 'tagihan'>('kas');
   const [myPayments, setMyPayments] = useState<{matchId: string; matchTitle: string; status: string; timestamp: number}[]>([]);
   const [piutang, setPiutang] = useState<{name: string; count: number; total: number}[]>([]);
   const { user, nickname } = useAuth();
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'kas' || tab === 'piutang' || tab === 'riwayat' || tab === 'tagihan') {
+      setFinanceTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'club_info'), (snap) => {
@@ -354,21 +374,89 @@ export default function Finance() {
     });
   };
 
-  const handleAddExpense = async () => {
-    if (!isAdmin || !expenseDesc.trim() || !expenseAmount) return;
+  const handleAddTransaction = async () => {
+    if (!isAdmin || !txAmount) return;
     try {
+      const amount = parseInt(txAmount, 10);
+      if (!amount || amount <= 0) return;
+
+      let description = txDesc.trim();
+      let category: Transaction['category'] = 'manual';
+      let extra: Partial<Transaction> = {};
+
+      if (txType === 'expense') {
+        if (!description) return;
+      } else if (incomeCategory === 'sponsor') {
+        category = 'sponsor';
+        if (!description) description = 'Pemasukan Sponsor';
+      } else if (incomeCategory === 'other') {
+        category = 'other';
+        if (!description) description = 'Pemasukan Lain-lain';
+      } else if (incomeCategory === 'field_fee') {
+        category = 'field_fee';
+        const field = venues.find(v => v.id === fieldId);
+        if (!field) return;
+        const friendTotal = Math.max(1, parseInt(friendCount, 10) || 1);
+        extra = {
+          fieldId: field.id,
+          fieldName: field.name,
+          contributorName: contributorName.trim() || undefined,
+          friendCount: friendTotal
+        };
+        description = `${contributorName.trim() || 'Iuran lapangan'} - ${field.name}${friendTotal > 0 ? ` (${friendTotal} teman)` : ''}`;
+      }
+
       await setDoc(doc(collection(db, 'finance')), {
-        amount: parseInt(expenseAmount),
-        type: 'expense',
-        description: expenseDesc.trim(),
-        timestamp: Date.now()
+        amount,
+        type: txType,
+        category,
+        description,
+        timestamp: Date.now(),
+        ...extra
       });
-      setExpenseDesc('');
-      setExpenseAmount('');
-      setShowExpenseForm(false);
+      setTxDesc('');
+      setTxAmount('');
+      setContributorName('');
+      setFriendCount('1');
+      setFieldId(venues[0]?.id || '');
+      setIncomeCategory('sponsor');
+      setTxType('expense');
+      setShowTxForm(false);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, 'expense');
+      handleFirestoreError(err, OperationType.WRITE, 'transaction');
     }
+  };
+
+  const selectedField = venues.find(v => v.id === fieldId);
+  const isFieldIncome = txType === 'income' && incomeCategory === 'field_fee';
+
+  const transactionFormTitle = txType === 'expense'
+    ? 'Tambah Pengeluaran'
+    : incomeCategory === 'field_fee'
+    ? 'Tambah Pemasukan Iuran Lapangan'
+    : incomeCategory === 'sponsor'
+    ? 'Tambah Pemasukan Sponsor'
+    : 'Tambah Pemasukan Lain-lain';
+
+  const transactionButtonLabel = txType === 'expense' ? 'Simpan Pengeluaran' : 'Simpan Pemasukan';
+
+  const transactionPlaceholder = txType === 'expense'
+    ? 'Deskripsi (misal: Beli bola, Air minum)'
+    : incomeCategory === 'sponsor'
+    ? 'Deskripsi sponsor (opsional)'
+    : incomeCategory === 'other'
+    ? 'Deskripsi pemasukan lain-lain (opsional)'
+    : 'Catatan tambahan (opsional)';
+
+  const getTransactionLabel = (tx: Transaction) => {
+    if (tx.type === 'expense') return tx.description;
+    if (tx.category === 'field_fee' && tx.fieldName) {
+      const parts = [tx.fieldName];
+      if (tx.contributorName) parts.unshift(tx.contributorName);
+      if (tx.friendCount) parts.push(`${tx.friendCount} teman`);
+      return parts.join(' • ');
+    }
+    return tx.description;
   };
 
   const handleUndoPayment = async (tx: Transaction) => {
@@ -427,10 +515,10 @@ export default function Finance() {
               </button>
             </div>
             <button 
-              onClick={() => setShowExpenseForm(!showExpenseForm)}
+              onClick={() => setShowTxForm(!showTxForm)}
               className="w-full flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-red-500/20"
             >
-              <TrendingDown className="w-3.5 h-3.5" /> {showExpenseForm ? 'Tutup Form' : 'Tambah Pengeluaran'}
+              <TrendingDown className="w-3.5 h-3.5" /> {showTxForm ? 'Tutup Form' : 'Tambah Transaksi'}
             </button>
           </div>
         )}
@@ -499,15 +587,74 @@ export default function Finance() {
       </div>
 
       {/* Expense Form */}
-      {isAdmin && showExpenseForm && (
+      {isAdmin && showTxForm && (
         <div className="bg-zinc-900 border border-red-500/20 rounded-3xl p-5 shadow-xl animate-in fade-in slide-in-from-top-4 duration-300">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-4">Tambah Pengeluaran</h4>
+          <h4 className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-4">{transactionFormTitle}</h4>
           <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setTxType('expense')}
+                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${txType === 'expense' ? 'bg-red-500 text-white border-red-400' : 'bg-zinc-950 text-zinc-500 border-zinc-800'}`}
+              >
+                Pengeluaran
+              </button>
+              <button
+                onClick={() => setTxType('income')}
+                className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${txType === 'income' ? 'bg-lime-400 text-zinc-950 border-lime-300' : 'bg-zinc-950 text-zinc-500 border-zinc-800'}`}
+              >
+                Pemasukan
+              </button>
+            </div>
+
+            {txType === 'income' && (
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => setIncomeCategory('sponsor')} className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${incomeCategory === 'sponsor' ? 'bg-lime-400 text-zinc-950 border-lime-300' : 'bg-zinc-950 text-zinc-500 border-zinc-800'}`}>Sponsor</button>
+                <button onClick={() => setIncomeCategory('field_fee')} className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${incomeCategory === 'field_fee' ? 'bg-lime-400 text-zinc-950 border-lime-300' : 'bg-zinc-950 text-zinc-500 border-zinc-800'}`}>Iuran Lapangan</button>
+                <button onClick={() => setIncomeCategory('other')} className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${incomeCategory === 'other' ? 'bg-lime-400 text-zinc-950 border-lime-300' : 'bg-zinc-950 text-zinc-500 border-zinc-800'}`}>Lain-lain</button>
+              </div>
+            )}
+
+            {isFieldIncome && (
+              <div className="flex flex-col gap-3">
+                <select
+                  value={fieldId}
+                  onChange={(e) => setFieldId(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-lime-400/50"
+                >
+                  {venues.map((venue) => (
+                    <option key={venue.id} value={venue.id}>{venue.name}</option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nama yang bawa teman"
+                    value={contributorName}
+                    onChange={(e) => setContributorName(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-lime-400/50 placeholder:text-zinc-700"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Jumlah teman"
+                    value={friendCount}
+                    onChange={(e) => setFriendCount(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-lime-400/50 placeholder:text-zinc-700"
+                  />
+                </div>
+                {selectedField && (
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+                    {selectedField.name} • {selectedField.address}
+                  </p>
+                )}
+              </div>
+            )}
+
             <input
               type="text"
-              placeholder="Deskripsi (misal: Beli bola, Air minum)"
-              value={expenseDesc}
-              onChange={(e) => setExpenseDesc(e.target.value)}
+              placeholder={transactionPlaceholder}
+              value={txDesc}
+              onChange={(e) => setTxDesc(e.target.value)}
               className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-red-400/50 placeholder:text-zinc-700"
             />
             <div className="flex gap-2">
@@ -516,17 +663,17 @@ export default function Finance() {
                 <input
                   type="number"
                   placeholder="0"
-                  value={expenseAmount}
-                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  value={txAmount}
+                  onChange={(e) => setTxAmount(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-red-400/50 placeholder:text-zinc-700"
                 />
               </div>
               <button
-                onClick={handleAddExpense}
-                disabled={!expenseDesc.trim() || !expenseAmount}
-                className="bg-red-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 hover:bg-red-400 transition-all"
+                onClick={handleAddTransaction}
+                disabled={!txAmount || (txType === 'expense' && !txDesc.trim()) || (isFieldIncome && (!fieldId || !contributorName.trim()))}
+                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 transition-all ${txType === 'expense' ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-lime-400 text-zinc-950 hover:bg-lime-300'}`}
               >
-                Simpan
+                {transactionButtonLabel}
               </button>
             </div>
           </div>
@@ -616,9 +763,14 @@ export default function Finance() {
                     {tx.type === 'income' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   </div>
                   <div>
-                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{tx.description}</h5>
+                    <h5 className="text-[11px] font-black text-zinc-200 uppercase tracking-tight line-clamp-1">{getTransactionLabel(tx)}</h5>
                     <div className="flex items-center gap-2 mt-0.5">
                       {tx.userName && <span className="text-[10px] text-zinc-500 font-bold uppercase">{tx.userName}</span>}
+                      {tx.type === 'income' && tx.category && (
+                        <span className="text-[10px] text-lime-400 font-bold uppercase">
+                          {tx.category === 'field_fee' ? 'Iuran Lapangan' : tx.category === 'sponsor' ? 'Sponsor' : 'Lain-lain'}
+                        </span>
+                      )}
                       <span className="text-[10px] text-zinc-600 font-medium uppercase">{format(tx.timestamp, 'd MMM, HH:mm')}</span>
                     </div>
                   </div>
