@@ -11,7 +11,6 @@ import { useSearchParams } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { venues } from '../data/venues';
 
 interface Transaction {
   id: string;
@@ -27,6 +26,13 @@ interface Transaction {
   fieldName?: string;
   contributorName?: string;
   friendCount?: number;
+}
+
+interface ActiveFieldOption {
+  id: string;
+  title: string;
+  location: string;
+  fieldCost: number;
 }
 
 export default function Finance() {
@@ -149,9 +155,10 @@ export default function Finance() {
   const [incomeCategory, setIncomeCategory] = useState<'sponsor' | 'field_fee' | 'other'>('sponsor');
   const [txDesc, setTxDesc] = useState('');
   const [txAmount, setTxAmount] = useState('');
-  const [fieldId, setFieldId] = useState(venues[0]?.id || '');
+  const [selectedFieldId, setSelectedFieldId] = useState('');
   const [contributorName, setContributorName] = useState('');
   const [friendCount, setFriendCount] = useState('1');
+  const [activeFieldOptions, setActiveFieldOptions] = useState<ActiveFieldOption[]>([]);
   const [financeTab, setFinanceTab] = useState<'kas' | 'piutang' | 'riwayat' | 'tagihan'>('kas');
   const [myPayments, setMyPayments] = useState<{matchId: string; matchTitle: string; status: string; timestamp: number}[]>([]);
   const [piutang, setPiutang] = useState<{name: string; count: number; total: number}[]>([]);
@@ -192,6 +199,29 @@ export default function Finance() {
     });
     return unsub;
   }, [user]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const q = query(collection(db, 'schedules'), where('status', '==', 'upcoming'), orderBy('timestamp', 'asc'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const options: ActiveFieldOption[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const location = String(data?.location || '').trim();
+        if (location) {
+          options.push({
+            id: docSnap.id,
+            title: String(data?.title || 'Jadwal'),
+            location,
+            fieldCost: Number(data?.fieldCost || 0)
+          });
+        }
+      });
+      setActiveFieldOptions(options);
+      setSelectedFieldId((current) => current && options.some(opt => opt.id === current) ? current : (options[0]?.id || ''));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'schedules'));
+    return unsub;
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!user) return;
@@ -394,16 +424,19 @@ export default function Finance() {
         if (!description) description = 'Pemasukan Lain-lain';
       } else if (incomeCategory === 'field_fee') {
         category = 'field_fee';
-        const field = venues.find(v => v.id === fieldId);
+        const field = activeFieldOptions.find(opt => opt.id === selectedFieldId);
         if (!field) return;
         const friendTotal = Math.max(1, parseInt(friendCount, 10) || 1);
         extra = {
           fieldId: field.id,
-          fieldName: field.name,
+          fieldName: field.location,
           contributorName: contributorName.trim() || undefined,
           friendCount: friendTotal
         };
-        description = `${contributorName.trim() || 'Iuran lapangan'} - ${field.name}${friendTotal > 0 ? ` (${friendTotal} teman)` : ''}`;
+        if (!txAmount || parseInt(txAmount, 10) <= 0) {
+          setTxAmount(String(field.fieldCost || 0));
+        }
+        description = `${contributorName.trim() || 'Iuran lapangan'} - ${field.location}${friendTotal > 0 ? ` (${friendTotal} teman)` : ''}`;
       }
 
       await setDoc(doc(collection(db, 'finance')), {
@@ -418,7 +451,7 @@ export default function Finance() {
       setTxAmount('');
       setContributorName('');
       setFriendCount('1');
-      setFieldId(venues[0]?.id || '');
+      setSelectedFieldId(activeFieldOptions[0]?.id || '');
       setIncomeCategory('sponsor');
       setTxType('expense');
       setShowTxForm(false);
@@ -427,7 +460,7 @@ export default function Finance() {
     }
   };
 
-  const selectedField = venues.find(v => v.id === fieldId);
+  const selectedField = activeFieldOptions.find(opt => opt.id === selectedFieldId);
   const isFieldIncome = txType === 'income' && incomeCategory === 'field_fee';
 
   const transactionFormTitle = txType === 'expense'
@@ -617,12 +650,20 @@ export default function Finance() {
             {isFieldIncome && (
               <div className="flex flex-col gap-3">
                 <select
-                  value={fieldId}
-                  onChange={(e) => setFieldId(e.target.value)}
+                  value={selectedFieldId}
+                  onChange={(e) => {
+                    const next = activeFieldOptions.find(opt => opt.id === e.target.value);
+                    setSelectedFieldId(e.target.value);
+                    if (next?.fieldCost) setTxAmount(String(next.fieldCost));
+                  }}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-lime-400/50"
                 >
-                  {venues.map((venue) => (
-                    <option key={venue.id} value={venue.id}>{venue.name}</option>
+                  {activeFieldOptions.length === 0 ? (
+                    <option value="">Belum ada jadwal aktif</option>
+                  ) : activeFieldOptions.map((field) => (
+                    <option key={field.id} value={field.id}>
+                      {field.title} - {field.location} ({field.fieldCost.toLocaleString('id-ID')})
+                    </option>
                   ))}
                 </select>
                 <div className="grid grid-cols-2 gap-2">
@@ -644,7 +685,7 @@ export default function Finance() {
                 </div>
                 {selectedField && (
                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
-                    {selectedField.name} • {selectedField.address}
+                    {selectedField.location} • Rp {selectedField.fieldCost.toLocaleString('id-ID')}
                   </p>
                 )}
               </div>
@@ -670,7 +711,7 @@ export default function Finance() {
               </div>
               <button
                 onClick={handleAddTransaction}
-                disabled={!txAmount || (txType === 'expense' && !txDesc.trim()) || (isFieldIncome && (!fieldId || !contributorName.trim()))}
+                disabled={!txAmount || (txType === 'expense' && !txDesc.trim()) || (isFieldIncome && (!selectedFieldId || !contributorName.trim()))}
                 className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 transition-all ${txType === 'expense' ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-lime-400 text-zinc-950 hover:bg-lime-300'}`}
               >
                 {transactionButtonLabel}
