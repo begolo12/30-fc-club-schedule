@@ -1,7 +1,7 @@
 import React, { useEffect, useState, type ButtonHTMLAttributes } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Calendar as CalendarIcon, MapPin, Plus, ArrowRight } from 'lucide-react';
 import { format, startOfDay } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -24,10 +24,17 @@ interface Schedule {
 
 export default function CalendarView() {
   const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+
+  useEffect(() => {
+    if (searchParams.get('view') === 'list') {
+      setSelectedDate(undefined);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const q = query(collection(db, 'schedules'), orderBy('timestamp', 'asc'));

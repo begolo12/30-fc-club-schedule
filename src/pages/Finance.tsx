@@ -481,6 +481,8 @@ export default function Finance() {
     ? 'Deskripsi pemasukan lain-lain (opsional)'
     : 'Catatan tambahan (opsional)';
 
+  const fieldFeeAmount = selectedField?.fieldCost || 0;
+
   const getTransactionLabel = (tx: Transaction) => {
     if (tx.type === 'expense') return tx.description;
     if (tx.category === 'field_fee' && tx.fieldName) {
@@ -704,19 +706,25 @@ export default function Finance() {
                 <input
                   type="number"
                   placeholder="0"
-                  value={txAmount}
+                  value={txType === 'income' && incomeCategory === 'field_fee' ? String(fieldFeeAmount) : txAmount}
                   onChange={(e) => setTxAmount(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-xs text-zinc-100 font-bold outline-none focus:border-red-400/50 placeholder:text-zinc-700"
+                  readOnly={txType === 'income' && incomeCategory === 'field_fee'}
+                  className={`w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-xs text-zinc-100 font-bold outline-none placeholder:text-zinc-700 ${txType === 'income' && incomeCategory === 'field_fee' ? 'opacity-80 cursor-not-allowed focus:border-zinc-800' : 'focus:border-red-400/50'}`}
                 />
               </div>
               <button
                 onClick={handleAddTransaction}
-                disabled={!txAmount || (txType === 'expense' && !txDesc.trim()) || (isFieldIncome && (!selectedFieldId || !contributorName.trim()))}
+                disabled={txType === 'income' && incomeCategory === 'field_fee' ? (!selectedFieldId || !contributorName.trim()) : (!txAmount || (txType === 'expense' && !txDesc.trim()) || (isFieldIncome && (!selectedFieldId || !contributorName.trim())))}
                 className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 transition-all ${txType === 'expense' ? 'bg-red-500 text-white hover:bg-red-400' : 'bg-lime-400 text-zinc-950 hover:bg-lime-300'}`}
               >
                 {transactionButtonLabel}
               </button>
             </div>
+            {txType === 'income' && incomeCategory === 'field_fee' && (
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+                Nominal otomatis mengikuti harga lapangan yang dipilih.
+              </p>
+            )}
           </div>
         </div>
       )}

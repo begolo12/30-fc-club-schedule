@@ -12,6 +12,7 @@ import EditScheduleModal from '../components/EditScheduleModal';
 import JoinMatchModal from '../components/JoinMatchModal';
 import FormationModal from '../components/FormationModal';
 import DeleteScheduleModal from '../components/DeleteScheduleModal';
+import AdminAddPlayerModal from '../components/AdminAddPlayerModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
 
@@ -72,6 +73,7 @@ export default function ScheduleDetail() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormationModalOpen, setIsFormationModalOpen] = useState(false);
+  const [isAdminAddModalOpen, setIsAdminAddModalOpen] = useState(false);
   const [showQris, setShowQris] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; variant?: 'default' | 'danger'; onConfirm: () => void } | null>(null);
 
@@ -153,6 +155,24 @@ export default function ScheduleDetail() {
         paymentStatus: 'unpaid'
       }, { merge: true });
       setIsJoinModalOpen(false);
+    } catch (err) { handleFirestoreError(err, OperationType.WRITE, 'participants'); }
+  };
+
+  const handleAdminAddPlayer = async (data: { name: string, team: 'A' | 'B', role: string, status: 'starting' | 'substitute' }) => {
+    if (!isAdmin || !id) return;
+    const fakeId = `manual_${Date.now()}`;
+    try {
+      await setDoc(doc(db, 'schedules', id, 'participants', fakeId), {
+        userId: fakeId,
+        name: data.name,
+        nickname: data.name.substring(0, 8),
+        role: data.role,
+        team: data.team,
+        status: data.status,
+        joinedAt: serverTimestamp(),
+        paymentStatus: 'unpaid'
+      }, { merge: true });
+      setIsAdminAddModalOpen(false);
     } catch (err) { handleFirestoreError(err, OperationType.WRITE, 'participants'); }
   };
 
@@ -687,6 +707,9 @@ export default function ScheduleDetail() {
               ) : (
                 <button onClick={() => setIsJoinModalOpen(true)} className="bg-lime-400 hover:bg-lime-300 text-zinc-950 px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg">Ikut Main</button>
               )}
+              {isAdmin && (
+                <button onClick={() => setIsAdminAddModalOpen(true)} className="bg-blue-500 hover:bg-blue-400 text-white px-4 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ml-auto">+ Tambah Manual</button>
+              )}
             </div>
           </div>
 
@@ -720,6 +743,7 @@ export default function ScheduleDetail() {
       <JoinMatchModal isOpen={isJoinModalOpen} onClose={() => setIsJoinModalOpen(false)} onJoin={handleJoin} participants={participants} />
       <FormationModal isOpen={isFormationModalOpen} onClose={() => setIsFormationModalOpen(false)} participants={participants} />
       <EditScheduleModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} schedule={schedule} />
+      <AdminAddPlayerModal isOpen={isAdminAddModalOpen} onClose={() => setIsAdminAddModalOpen(false)} onAdd={handleAdminAddPlayer} />
       <DeleteScheduleModal 
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)} 

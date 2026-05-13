@@ -68,12 +68,21 @@ html.light {
   --color-zinc-300: #3f3f46;
   --color-zinc-200: #27272a;
   --color-zinc-100: #18181b;
+  --color-lime-400: #65a30d;
 }
 
 html.light body {
   background: #ffffff;
   color: #18181b;
 }
+
+/* Make text utilities darker in light mode for better contrast */
+html.light .text-zinc-100 { color: #09090b; }
+html.light .text-zinc-200 { color: #18181b; }
+html.light .text-zinc-300 { color: #27272a; }
+html.light .text-zinc-400 { color: #3f3f46; }
+html.light .text-zinc-500 { color: #52525b; }
+html.light .text-zinc-600 { color: #71717a; }
 
 html.light ::-webkit-scrollbar-track {
   background: rgba(244, 244, 245, 0.8);
