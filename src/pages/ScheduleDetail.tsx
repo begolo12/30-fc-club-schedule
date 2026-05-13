@@ -13,6 +13,7 @@ import JoinMatchModal from '../components/JoinMatchModal';
 import FormationModal from '../components/FormationModal';
 import DeleteScheduleModal from '../components/DeleteScheduleModal';
 import AdminAddPlayerModal from '../components/AdminAddPlayerModal';
+import MatchReportModal from '../components/MatchReportModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
 
@@ -33,6 +34,9 @@ interface Schedule {
   responsibleName?: string;
   deletedAt?: number;
   deletionReason?: string;
+  scoreA?: number;
+  scoreB?: number;
+  matchNotes?: string;
 }
 
 interface Participant {
@@ -74,6 +78,7 @@ export default function ScheduleDetail() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isFormationModalOpen, setIsFormationModalOpen] = useState(false);
   const [isAdminAddModalOpen, setIsAdminAddModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [showQris, setShowQris] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; variant?: 'default' | 'danger'; onConfirm: () => void } | null>(null);
 
@@ -221,26 +226,30 @@ export default function ScheduleDetail() {
 
   const handleCloseMatch = () => {
     if (!isAdmin || !id || !schedule) return;
-    setConfirmDialog({
-      title: 'Selesaikan Pertandingan?',
-      message: `Biaya total Rp ${schedule.totalCost.toLocaleString('id-ID')} akan dicatat sebagai pengeluaran di kas.`,
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        try {
-          await updateDoc(doc(db, 'schedules', id), { status: 'completed', completedAt: Date.now() });
-          // Record expenses to finance
-          await setDoc(doc(collection(db, 'finance')), {
-            amount: schedule.totalCost,
-            type: 'expense',
-            description: `Biaya Laga: ${schedule.title}`,
-            matchId: id,
-            timestamp: Date.now()
-          });
-        } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, 'close-match');
-        }
-      }
-    });
+    setIsReportModalOpen(true);
+  };
+
+  const handleMatchReportSubmit = async (data: { scoreA: number; scoreB: number; matchNotes: string }) => {
+    if (!isAdmin || !id || !schedule) return;
+    try {
+      await updateDoc(doc(db, 'schedules', id), { 
+        status: 'completed', 
+        completedAt: Date.now(),
+        scoreA: data.scoreA,
+        scoreB: data.scoreB,
+        matchNotes: data.matchNotes
+      });
+      // Record expenses to finance
+      await setDoc(doc(collection(db, 'finance')), {
+        amount: schedule.totalCost,
+        type: 'expense',
+        description: `Biaya Laga: ${schedule.title}`,
+        matchId: id,
+        timestamp: Date.now()
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'close-match');
+    }
   };
 
   const handleDuplicate = async () => {
@@ -403,7 +412,29 @@ export default function ScheduleDetail() {
                 <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">{format(schedule.timestamp, 'EEEE, d MMM yyyy', { locale: idLocale })}</span>
               </div>
               <div>
-                <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-zinc-100 leading-tight">{schedule.title}</h2>
+                {schedule.status === 'completed' && schedule.scoreA !== undefined && schedule.scoreB !== undefined ? (
+                  <div className="mb-6 bg-zinc-950/50 border border-zinc-800/80 rounded-3xl p-6">
+                    <div className="flex items-center justify-center gap-6 md:gap-12 mb-4">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-red-400 mb-2">Tim A</span>
+                        <span className="text-5xl md:text-7xl font-black italic text-zinc-100">{schedule.scoreA}</span>
+                      </div>
+                      <span className="text-2xl md:text-4xl font-black text-zinc-700">-</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-blue-400 mb-2">Tim B</span>
+                        <span className="text-5xl md:text-7xl font-black italic text-zinc-100">{schedule.scoreB}</span>
+                      </div>
+                    </div>
+                    {schedule.matchNotes && (
+                      <div className="mt-4 pt-4 border-t border-zinc-800/50 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-lime-400/80 mb-2">Pencetak Gol & Catatan</p>
+                        <p className="text-xs text-zinc-300 font-medium leading-relaxed whitespace-pre-wrap">{schedule.matchNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-zinc-100 leading-tight">{schedule.title}</h2>
+                )}
                 <div className="flex flex-wrap gap-4 items-center mt-5 pt-5 border-t border-zinc-800/50 text-[11px]">
                   <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{schedule.location}</span></div>
                   <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{format(schedule.timestamp, 'HH:mm')} WIB</span></div>
@@ -744,6 +775,7 @@ export default function ScheduleDetail() {
       <FormationModal isOpen={isFormationModalOpen} onClose={() => setIsFormationModalOpen(false)} participants={participants} />
       <EditScheduleModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} schedule={schedule} />
       <AdminAddPlayerModal isOpen={isAdminAddModalOpen} onClose={() => setIsAdminAddModalOpen(false)} onAdd={handleAdminAddPlayer} />
+      <MatchReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} onSubmit={handleMatchReportSubmit} totalCost={schedule.totalCost} />
       <DeleteScheduleModal 
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)} 
