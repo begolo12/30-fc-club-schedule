@@ -3,7 +3,7 @@ import { collection, query, orderBy, onSnapshot, limit, where, doc, getDoc, upda
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 import { Calendar as CalendarIcon, MapPin, Users, Wallet, ArrowRight, TrendingUp, Clock, Trophy, Settings as SettingsIcon, AlertTriangle, X as XIcon, Megaphone, Plus } from 'lucide-react';
-import { format, startOfToday } from 'date-fns';
+import { differenceInCalendarDays, format, startOfToday } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { useAuth } from '../contexts/AuthContext';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
@@ -230,6 +230,12 @@ export default function Dashboard() {
   const [isPlayersOpen, setIsPlayersOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const nextMatch = upcomingMatches[0];
+  const getMatchDayLabel = (timestamp: number) => {
+    const diffDays = differenceInCalendarDays(new Date(timestamp), startOfToday());
+    if (diffDays === 0) return 'Hari Ini Main';
+    if (diffDays === 1) return 'Besok Main';
+    return 'Main Segera';
+  };
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate()).getTime();
@@ -270,7 +276,8 @@ export default function Dashboard() {
         <div className="mx-1 space-y-2 animate-in slide-in-from-top-4 duration-500">
           {unpaidMatches.map(m => {
             const match = upcomingMatches.find(um => um.id === m.id);
-            const isH1 = match && (match.timestamp - Date.now()) < 86400000;
+            const matchLabel = match ? getMatchDayLabel(match.timestamp) : 'Main Segera';
+            const isH1 = match && differenceInCalendarDays(new Date(match.timestamp), startOfToday()) <= 1;
             return (
               <Link key={m.id} to={`/schedule/${m.id}`} className={`flex items-center gap-3 border rounded-2xl p-4 transition-all ${isH1 ? 'bg-red-500/10 border-red-500/30 animate-pulse' : 'bg-orange-400/10 border-orange-400/20 hover:border-orange-400/40'}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isH1 ? 'bg-red-500/20 text-red-400' : 'bg-orange-400/20 text-orange-400'}`}>
@@ -278,7 +285,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className={`text-[10px] font-black uppercase tracking-widest italic ${isH1 ? 'text-red-400' : 'text-orange-400'}`}>
-                    {isH1 ? '⚠️ Besok Main — Belum Bayar!' : 'Belum Bayar'}
+                    {isH1 ? `⚠️ ${matchLabel} — Belum Bayar!` : 'Belum Bayar'}
                   </h4>
                   <p className="text-xs text-zinc-300 font-bold truncate">{m.title}</p>
                 </div>
