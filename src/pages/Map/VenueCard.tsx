@@ -10,10 +10,11 @@ interface VenueCardProps {
 }
 
 export default function VenueCard({ venue, onClick, isActive }: VenueCardProps) {
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${venue.coordinates[0]},${venue.coordinates[1]}`;
+
   const handleGoogleMaps = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `https://www.google.com/maps/search/?api=1&query=${venue.coordinates[0]},${venue.coordinates[1]}`;
-    window.open(url, '_blank');
+    window.open(mapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleWhatsApp = (e: React.MouseEvent) => {
@@ -56,13 +57,20 @@ export default function VenueCard({ venue, onClick, isActive }: VenueCardProps) 
       </div>
       
       <div className="p-4 flex flex-col gap-3">
-        <div>
-          <h3 className="text-base font-bold text-zinc-100 mb-1">{venue.name}</h3>
-          <div className="flex items-start gap-1.5 text-zinc-400 text-xs">
+        <button
+          type="button"
+          onClick={handleGoogleMaps}
+          className="text-left group self-start"
+          title="Buka lokasi di Google Maps"
+        >
+          <h3 className="text-base font-bold text-zinc-100 mb-1 group-hover:text-lime-400 transition-colors">
+            {venue.name}
+          </h3>
+          <div className="flex items-start gap-1.5 text-zinc-400 text-xs group-hover:text-lime-300 transition-colors">
             <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
             <p className="line-clamp-1">{venue.address}</p>
           </div>
-        </div>
+        </button>
         
         <div className="flex items-center justify-between gap-3 py-2 border-y border-zinc-800">
           <div className="flex flex-col">

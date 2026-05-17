@@ -264,7 +264,15 @@ export default function Map() {
                       alt={venue.name} 
                       className="w-full h-24 object-cover rounded-lg mb-2"
                     />
-                    <h3 className="font-bold text-sm m-0 text-zinc-900 mb-1">{venue.name}</h3>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${venue.coordinates[0]},${venue.coordinates[1]}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-sm m-0 text-zinc-900 mb-1 hover:text-lime-600 transition-colors inline-flex items-center gap-1"
+                    >
+                      {venue.name}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Maps</span>
+                    </a>
                     <p className="text-[10px] text-zinc-500 mt-1 mb-2 m-0 uppercase font-bold tracking-wider">
                       {venue.type.replace('-', ' ')}
                     </p>
