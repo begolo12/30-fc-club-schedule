@@ -6,7 +6,7 @@ import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 import { showNotification } from '../lib/notifications';
 import { useAuth } from '../contexts/AuthContext';
-import { findVenueReference, getVenueMapsUrl, getVenueSuggestions, type VenueReference } from '../lib/venueLinks';
+import { findVenueReference, getVenueSuggestions, type VenueReference } from '../lib/venueLinks';
 
 interface OtherCost {
   description: string;
@@ -76,10 +76,11 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
         const key = location.toLowerCase();
         if (seen.has(key)) return;
         seen.add(key);
+        const knownVenue = findVenueReference(location);
         refs.push({
           id: `schedule-${d.id}`,
           label: location,
-          mapsUrl: getVenueMapsUrl(location, data.locationUrl),
+          mapsUrl: data.locationUrl || knownVenue?.mapsUrl || '',
           aliases: [location],
         });
       });
@@ -130,11 +131,15 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
     try {
       const totalCost = calculateTotal();
       const timestamp = new Date(formData.datetime).getTime();
+      const resolvedLocationUrl = formData.locationUrl || matchedVenue?.mapsUrl;
+      if (!resolvedLocationUrl) {
+        throw new Error('Link Maps wajib diisi untuk lokasi baru');
+      }
 
       await addDoc(collection(db, 'schedules'), {
         title: formData.title,
         location: formData.location,
-        locationUrl: formData.locationUrl || getVenueMapsUrl(formData.location, undefined, savedVenueRefs),
+        locationUrl: resolvedLocationUrl,
         timestamp,
         type: formData.type,
         fieldCost: formData.fieldCost,
@@ -259,7 +264,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
               />
             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="relative">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Lokasi / Lapangan</label>
                 <div className="relative">
@@ -327,6 +332,21 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
                   />
                 </div>
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Link Map</label>
+              <input
+                required={!matchedVenue}
+                type="url"
+                value={formData.locationUrl}
+                onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 px-4 text-sm focus:border-lime-400 outline-none transition-all"
+                placeholder="https://maps.app.goo.gl/..."
+              />
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Tempat lama auto isi. Tempat baru wajib isi link.
+              </p>
             </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
