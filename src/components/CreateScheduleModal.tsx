@@ -6,6 +6,7 @@ import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 import { showNotification } from '../lib/notifications';
 import { useAuth } from '../contexts/AuthContext';
+import { findVenueReference, getVenueMapsUrl, getVenueSuggestions } from '../lib/venueLinks';
 
 interface OtherCost {
   description: string;
@@ -24,6 +25,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
   const [formData, setFormData] = useState({
     title: '',
     location: '',
+    locationUrl: '',
     datetime: '',
     type: 'latihan' as 'latihan' | 'sparing',
     fieldCost: 0,
@@ -38,6 +40,8 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
   const [formattedDpCost, setFormattedDpCost] = useState('0');
   const [formattedFeePerPlayer, setFormattedFeePerPlayer] = useState('0');
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const locationSuggestions = getVenueSuggestions(formData.location);
+  const matchedVenue = findVenueReference(formData.location);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -101,6 +105,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
       await addDoc(collection(db, 'schedules'), {
         title: formData.title,
         location: formData.location,
+        locationUrl: formData.locationUrl || getVenueMapsUrl(formData.location),
         timestamp,
         type: formData.type,
         fieldCost: formData.fieldCost,
@@ -149,6 +154,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
       setFormData({
         title: '',
         location: '',
+        locationUrl: '',
         datetime: '',
         type: 'latihan',
         fieldCost: 0,
@@ -225,7 +231,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
             </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
+              <div className="relative">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Lokasi / Lapangan</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -233,11 +239,51 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
                     required
                     type="text"
                     value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    onChange={(e) => {
+                      const location = e.target.value;
+                      const matched = findVenueReference(location);
+                      setFormData({
+                        ...formData,
+                        location,
+                        locationUrl: matched?.mapsUrl || ''
+                      });
+                    }}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-3 pl-12 pr-4 text-sm focus:border-lime-400 outline-none transition-all"
                     placeholder="Nama lapangan..."
                   />
                 </div>
+                {locationSuggestions.length > 0 && !matchedVenue && (
+                  <div className="absolute left-0 right-0 top-full mt-2 z-20 rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden">
+                    <div className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                      Referensi tempat
+                    </div>
+                    <div className="max-h-44 overflow-y-auto">
+                      {locationSuggestions.map((venue) => (
+                        <button
+                          key={venue.id}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            location: venue.label,
+                            locationUrl: venue.mapsUrl
+                          }))}
+                          className="w-full text-left px-4 py-3 hover:bg-zinc-900 transition-colors border-b border-zinc-900 last:border-b-0"
+                        >
+                          <div className="text-sm font-bold text-zinc-100">{venue.label}</div>
+                          <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mt-1">
+                            Klik untuk isi lokasi + link Maps
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {matchedVenue && (
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-lime-400">
+                    Link Maps siap: {matchedVenue.label}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Waktu Kick-off</label>

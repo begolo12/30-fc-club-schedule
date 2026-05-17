@@ -12,12 +12,14 @@ import type { CalendarDay, Modifiers } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
+import { getVenueMapsUrl } from '../lib/venueLinks';
 
 interface Schedule {
   id: string;
   title: string;
   timestamp: number;
   location: string;
+  locationUrl?: string;
   type?: 'latihan' | 'sparing';
   status: string;
 }
@@ -225,7 +227,19 @@ export default function CalendarView() {
                     <div className="mt-auto flex items-center justify-between pt-4 border-t border-zinc-800/30">
                       <div className="flex items-center gap-2.5 text-zinc-500 group-hover:text-zinc-300 transition-colors">
                         <MapPin className={cn("w-3.5 h-3.5", isSparing ? "text-red-400" : "text-emerald-400")} />
-                        <span className="text-[10px] font-bold uppercase truncate max-w-[140px] tracking-tight">{schedule.location}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const mapsUrl = getVenueMapsUrl(schedule.location, schedule.locationUrl);
+                              if (mapsUrl) window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="text-[10px] font-bold uppercase truncate max-w-[140px] tracking-tight text-left hover:text-lime-400 transition-colors"
+                            title="Buka lokasi di Maps"
+                          >
+                          {schedule.location}
+                        </button>
                       </div>
                       <div className="w-7 h-7 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center group-hover:bg-lime-400 group-hover:text-zinc-950 transition-all">
                         <ArrowRight className="w-3.5 h-3.5" />

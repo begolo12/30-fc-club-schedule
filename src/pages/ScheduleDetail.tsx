@@ -16,12 +16,14 @@ import AdminAddPlayerModal from '../components/AdminAddPlayerModal';
 import MatchReportModal from '../components/MatchReportModal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { listenForChatNotifications, listenForPaymentNotifications } from '../lib/realtimeNotifications';
+import { getVenueMapsUrl } from '../lib/venueLinks';
 
 interface Schedule {
   id: string;
   title: string;
   timestamp: number;
   location: string;
+  locationUrl?: string;
   fieldCost: number;
   dpCost: number;
   otherCosts?: { description: string, amount: number }[];
@@ -436,7 +438,23 @@ export default function ScheduleDetail() {
                   <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter text-zinc-100 leading-tight">{schedule.title}</h2>
                 )}
                 <div className="flex flex-wrap gap-4 items-center mt-5 pt-5 border-t border-zinc-800/50 text-[11px]">
-                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{schedule.location}</span></div>
+                  {getVenueMapsUrl(schedule.location, schedule.locationUrl) ? (
+                    <a
+                      href={getVenueMapsUrl(schedule.location, schedule.locationUrl)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 hover:text-lime-400 transition-colors"
+                      title="Buka lokasi di Maps"
+                    >
+                      <MapPin className="w-4 h-4 text-lime-400" />
+                      <span className="font-bold text-zinc-300 uppercase">{schedule.location}</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-lime-400" />
+                      <span className="font-bold text-zinc-300 uppercase">{schedule.location}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{format(schedule.timestamp, 'HH:mm')} WIB</span></div>
                   <div className="flex items-center gap-2"><Users className="w-4 h-4 text-lime-400" /><span className="font-bold text-zinc-300 uppercase">{participants.length} User</span></div>
                 </div>

@@ -12,6 +12,7 @@ import { BADGES, getBadgeById, calculateBadges } from '../lib/badges';
 import UserSettingsModal from '../components/UserSettingsModal';
 import CreateScheduleModal from '../components/CreateScheduleModal';
 import { SkeletonCard, SkeletonList } from '../components/Skeleton';
+import { getVenueMapsUrl } from '../lib/venueLinks';
 
 interface Transaction {
   id: string;
@@ -28,6 +29,7 @@ interface Schedule {
   title: string;
   timestamp: number;
   location: string;
+  locationUrl?: string;
   status: string;
   deletedAt?: number;
   deletionReason?: string;
@@ -519,10 +521,27 @@ export default function Dashboard() {
             </h3>
 
             <div className="flex gap-4 items-center pt-4 border-t border-zinc-800/50 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[120px]">{nextMatch.location}</span>
-              </div>
+              {getVenueMapsUrl(nextMatch.location, nextMatch.locationUrl) ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const mapsUrl = getVenueMapsUrl(nextMatch.location, nextMatch.locationUrl);
+                    if (mapsUrl) window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+                  }}
+                  className="flex items-center gap-2 text-left hover:text-lime-400 transition-colors"
+                  title="Buka lokasi di Maps"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[120px]">{nextMatch.location}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[120px]">{nextMatch.location}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />
                 <span>{format(nextMatch.timestamp, 'HH:mm')} WIB</span>
@@ -565,7 +584,19 @@ export default function Dashboard() {
                   <h5 className="text-xs font-black italic uppercase tracking-tight text-zinc-100 group-hover:text-lime-400 transition-colors truncate">{match.title}</h5>
                   <div className="flex items-center gap-2 mt-0.5 text-[10px] text-zinc-600 font-bold uppercase">
                     <MapPin className="w-3 h-3 shrink-0" />
-                    <span className="truncate">{match.location}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const mapsUrl = getVenueMapsUrl(match.location, match.locationUrl);
+                        if (mapsUrl) window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      className="truncate text-left hover:text-lime-400 transition-colors"
+                      title="Buka lokasi di Maps"
+                    >
+                      {match.location}
+                    </button>
                   </div>
                 </div>
               </div>
