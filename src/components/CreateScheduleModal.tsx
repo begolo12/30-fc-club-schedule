@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, MapPin, Clock, Trash2, User } from 'lucide-react';
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/errorHandler';
 import { cn } from '../lib/utils';
 import { showNotification } from '../lib/notifications';
 import { useAuth } from '../contexts/AuthContext';
-import { findVenueReference, getVenueMapsUrl, getVenueSuggestions } from '../lib/venueLinks';
+import { findVenueReference, getVenueMapsUrl, getVenueSuggestions, type VenueReference } from '../lib/venueLinks';
 
 interface OtherCost {
   description: string;
@@ -40,8 +40,9 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
   const [formattedDpCost, setFormattedDpCost] = useState('0');
   const [formattedFeePerPlayer, setFormattedFeePerPlayer] = useState('0');
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const locationSuggestions = getVenueSuggestions(formData.location);
-  const matchedVenue = findVenueReference(formData.location);
+  const [savedVenueRefs, setSavedVenueRefs] = useState<VenueReference[]>([]);
+  const locationSuggestions = getVenueSuggestions(formData.location, 5, savedVenueRefs);
+  const matchedVenue = findVenueReference(formData.location, savedVenueRefs);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -60,6 +61,34 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
     };
     fetchUsers();
   }, [canAssignResponsible]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const unsubscribe = onSnapshot(collection(db, 'schedules'), (snapshot) => {
+      const seen = new Set<string>();
+      const refs: VenueReference[] = [];
+
+      snapshot.forEach((d) => {
+        const data = d.data() as { location?: string; locationUrl?: string };
+        const location = data.location?.trim();
+        if (!location) return;
+        const key = location.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        refs.push({
+          id: `schedule-${d.id}`,
+          label: location,
+          mapsUrl: getVenueMapsUrl(location, data.locationUrl),
+          aliases: [location],
+        });
+      });
+
+      setSavedVenueRefs(refs);
+    });
+
+    return unsubscribe;
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -105,7 +134,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
       await addDoc(collection(db, 'schedules'), {
         title: formData.title,
         location: formData.location,
-        locationUrl: formData.locationUrl || getVenueMapsUrl(formData.location),
+        locationUrl: formData.locationUrl || getVenueMapsUrl(formData.location, undefined, savedVenueRefs),
         timestamp,
         type: formData.type,
         fieldCost: formData.fieldCost,
@@ -241,7 +270,7 @@ export default function CreateScheduleModal({ isOpen, onClose }: Props) {
                     value={formData.location}
                     onChange={(e) => {
                       const location = e.target.value;
-                      const matched = findVenueReference(location);
+                      const matched = findVenueReference(location, savedVenueRefs);
                       setFormData({
                         ...formData,
                         location,

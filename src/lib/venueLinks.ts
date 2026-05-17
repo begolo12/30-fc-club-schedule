@@ -20,11 +20,23 @@ const normalize = (value: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
-export function getVenueSuggestions(query: string, limit = 5) {
+const mergeVenueReferences = (extraReferences: VenueReference[] = []) => {
+  const merged = [...venueReferences, ...extraReferences];
+  const seen = new Set<string>();
+
+  return merged.filter((venue) => {
+    const key = normalize(venue.label);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+export function getVenueSuggestions(query: string, limit = 5, extraReferences: VenueReference[] = []) {
   const clean = normalize(query);
   if (!clean) return [];
 
-  return venueReferences
+  return mergeVenueReferences(extraReferences)
     .map((venue) => {
       const haystacks = [venue.label, ...venue.aliases];
       const score = haystacks.reduce((best, item) => {
@@ -44,19 +56,19 @@ export function getVenueSuggestions(query: string, limit = 5) {
     .map((item) => item.venue);
 }
 
-export function findVenueReference(query: string) {
+export function findVenueReference(query: string, extraReferences: VenueReference[] = []) {
   const clean = normalize(query);
   if (!clean) return null;
 
-  return venueReferences.find((venue) => {
+  return mergeVenueReferences(extraReferences).find((venue) => {
     const haystacks = [venue.label, ...venue.aliases];
     return haystacks.some((item) => normalize(item) === clean);
   }) ?? null;
 }
 
-export function getVenueMapsUrl(location: string, locationUrl?: string) {
+export function getVenueMapsUrl(location: string, locationUrl?: string, extraReferences: VenueReference[] = []) {
   if (locationUrl) return locationUrl;
-  const matched = findVenueReference(location);
+  const matched = findVenueReference(location, extraReferences);
   if (matched) return matched.mapsUrl;
   const query = encodeURIComponent(location.trim());
   return query ? `https://www.google.com/maps/search/?api=1&query=${query}` : undefined;
