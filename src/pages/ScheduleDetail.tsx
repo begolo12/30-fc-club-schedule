@@ -377,27 +377,38 @@ export default function ScheduleDetail() {
         ))}
         <div className="pt-3 border-t border-zinc-800/30">
           <p className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-zinc-600">Cadangan</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {squad.filter(p => p.status === 'substitute').length > 0 ? (
               squad.filter(p => p.status === 'substitute').map(p => (
-                <div key={p.id} className="group flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
-                  <span className="text-[10px] font-black text-zinc-500 uppercase">{p.role}</span>
-                  <span className="text-[10px] font-bold text-zinc-300 uppercase">{p.nickname || p.name}</span>
-                  {p.paymentStatus === 'paid_qris' || p.paymentStatus === 'paid_cash' ? (
-                    <span className="text-[9px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>
-                  ) : (
-                    <>
-                      {(p.paymentStatus === 'pending_qris' || p.paymentStatus === 'pending_cash') && <span className="text-[9px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
-                      {isAdmin && (
-                        <button onClick={() => handleVerifyPayment(p.id, 'paid_cash')} className="text-[9px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
-                      )}
-                    </>
-                  )}
-                  {isAdmin && p.userId !== user?.uid && (
-                    <button onClick={() => handleKick(p)} className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all" title="Keluarkan">
-                      <UserMinus className="w-3 h-3" />
-                    </button>
-                  )}
+                <div key={p.id} className={cn(
+                  "group flex items-center justify-between gap-3 rounded-xl border border-zinc-800/50 bg-zinc-950/60 px-3 py-2",
+                  p.userId === user?.uid && "border-lime-400/30 bg-lime-400/5"
+                )}>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-1 text-[9px] font-black uppercase text-zinc-500">
+                      {p.role}
+                    </span>
+                    <span className="min-w-0 truncate text-[12px] font-bold uppercase tracking-tight text-zinc-300">
+                      {p.nickname || p.name}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {p.paymentStatus === 'paid_qris' || p.paymentStatus === 'paid_cash' ? (
+                      <span className="rounded bg-lime-400/10 px-2 py-1 text-[9px] font-black uppercase text-lime-400">Lunas</span>
+                    ) : (
+                      <>
+                        {(p.paymentStatus === 'pending_qris' || p.paymentStatus === 'pending_cash') && <span className="rounded bg-orange-400/10 px-2 py-1 text-[9px] font-black uppercase text-orange-400">Pending</span>}
+                        {isAdmin && (
+                          <button onClick={() => handleVerifyPayment(p.id, 'paid_cash')} className="rounded bg-lime-400 px-2 py-1 text-[9px] font-black uppercase text-zinc-950 transition-all hover:bg-lime-300">Sudah Bayar</button>
+                        )}
+                      </>
+                    )}
+                    {isAdmin && p.userId !== user?.uid && (
+                      <button onClick={() => handleKick(p)} className="rounded p-1 text-zinc-600 transition-all hover:bg-red-400/10 hover:text-red-400" title="Keluarkan">
+                        <UserMinus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
