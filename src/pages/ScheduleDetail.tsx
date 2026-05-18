@@ -50,7 +50,7 @@ interface Participant {
   team: 'A' | 'B';
   status: 'starting' | 'substitute';
   joinedAt: number | Timestamp;
-  paymentStatus?: 'unpaid' | 'pending_qris' | 'paid_qris' | 'paid_cash';
+  paymentStatus?: 'unpaid' | 'pending_qris' | 'pending_cash' | 'paid_qris' | 'paid_cash';
   attendance?: 'hadir' | 'mungkin' | 'tidak';
 }
 
@@ -205,7 +205,7 @@ export default function ScheduleDetail() {
       variant: 'danger',
       onConfirm: async () => {
         setConfirmDialog(null);
-        try { await deleteDoc(doc(db, 'schedules', id, 'participants', p.userId)); }
+        try { await deleteDoc(doc(db, 'schedules', id, 'participants', p.id)); }
         catch (err) { handleFirestoreError(err, OperationType.DELETE, 'kick-participant'); }
       }
     });
@@ -287,29 +287,29 @@ export default function ScheduleDetail() {
     }
   };
 
-  const handleVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
+  const handleVerifyPayment = async (participantDocId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!isAdmin || !id) return;
     if (status !== 'unpaid') {
       setConfirmDialog({
         title: 'Konfirmasi Pembayaran',
         message: 'Konfirmasi pembayaran sudah masuk?',
-        onConfirm: () => { setConfirmDialog(null); doVerifyPayment(participantId, status); }
+        onConfirm: () => { setConfirmDialog(null); doVerifyPayment(participantDocId, status); }
       });
       return;
     }
-    doVerifyPayment(participantId, status);
+    doVerifyPayment(participantDocId, status);
   };
 
-  const doVerifyPayment = async (participantId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
+  const doVerifyPayment = async (participantDocId: string, status: 'paid_qris' | 'paid_cash' | 'unpaid') => {
     if (!id) return;
     try {
-      const pDoc = await getDoc(doc(db, 'schedules', id, 'participants', participantId));
+      const pDoc = await getDoc(doc(db, 'schedules', id, 'participants', participantDocId));
       const current = pDoc.data()?.paymentStatus;
       if ((current === 'paid_qris' || current === 'paid_cash') && status !== 'unpaid') return;
 
-      await updateDoc(doc(db, 'schedules', id, 'participants', participantId), { paymentStatus: status });
+      await updateDoc(doc(db, 'schedules', id, 'participants', participantDocId), { paymentStatus: status });
       if (status !== 'unpaid') {
-        const p = participants.find(x => x.userId === participantId);
+        const p = participants.find(x => x.id === participantDocId);
         await setDoc(doc(collection(db, 'finance')), {
           amount: iuranFix,
           type: 'income',
@@ -363,9 +363,9 @@ export default function ScheduleDetail() {
             <div className="flex items-center gap-2">
               {p.paymentStatus === 'paid_qris' && <span className="text-[10px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
               {p.paymentStatus === 'paid_cash' && <span className="text-[10px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>}
-              {p.paymentStatus === 'pending_qris' && <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
+              {(p.paymentStatus === 'pending_qris' || p.paymentStatus === 'pending_cash') && <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
               {isAdmin && p.paymentStatus !== 'paid_qris' && p.paymentStatus !== 'paid_cash' && (
-                <button onClick={() => handleVerifyPayment(p.userId, 'paid_cash')} className="text-[10px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
+                <button onClick={() => handleVerifyPayment(p.id, 'paid_cash')} className="text-[10px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
               )}
               {isAdmin && p.userId !== user?.uid && (
                 <button onClick={() => handleKick(p)} className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100" title="Keluarkan">
@@ -375,13 +375,35 @@ export default function ScheduleDetail() {
             </div>
           </div>
         ))}
-        <div className="flex flex-wrap gap-1 pt-2 border-t border-zinc-800/30">
-          {squad.filter(p => p.status === 'substitute').map(p => (
-            <div key={p.id} className="px-2 py-1 bg-zinc-950/40 border border-zinc-900 rounded-lg opacity-60 flex items-center gap-2">
-              <span className="text-[10px] font-black text-zinc-600 uppercase">{p.role}</span>
-              <span className="text-[9px] font-bold text-zinc-500 uppercase">{p.nickname || p.name}</span>
-            </div>
-          ))}
+        <div className="pt-3 border-t border-zinc-800/30">
+          <p className="mb-2 text-[9px] font-black uppercase tracking-[0.18em] text-zinc-600">Cadangan</p>
+          <div className="flex flex-wrap gap-2">
+            {squad.filter(p => p.status === 'substitute').length > 0 ? (
+              squad.filter(p => p.status === 'substitute').map(p => (
+                <div key={p.id} className="group flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
+                  <span className="text-[10px] font-black text-zinc-500 uppercase">{p.role}</span>
+                  <span className="text-[10px] font-bold text-zinc-300 uppercase">{p.nickname || p.name}</span>
+                  {p.paymentStatus === 'paid_qris' || p.paymentStatus === 'paid_cash' ? (
+                    <span className="text-[9px] font-black text-lime-400 bg-lime-400/10 px-2 py-1 rounded uppercase">Lunas</span>
+                  ) : (
+                    <>
+                      {(p.paymentStatus === 'pending_qris' || p.paymentStatus === 'pending_cash') && <span className="text-[9px] font-black text-orange-400 bg-orange-400/10 px-2 py-1 rounded uppercase">Pending</span>}
+                      {isAdmin && (
+                        <button onClick={() => handleVerifyPayment(p.id, 'paid_cash')} className="text-[9px] font-black text-zinc-950 bg-lime-400 px-2 py-1 rounded uppercase hover:bg-lime-300 transition-all">Sudah Bayar</button>
+                      )}
+                    </>
+                  )}
+                  {isAdmin && p.userId !== user?.uid && (
+                    <button onClick={() => handleKick(p)} className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-all" title="Keluarkan">
+                      <UserMinus className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))
+            ) : (
+              <span className="text-[10px] font-bold text-zinc-700 uppercase">Belum ada cadangan</span>
+            )}
+          </div>
         </div>
       </div>
     </div>
